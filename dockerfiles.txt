@@ -1,0 +1,74 @@
+1. First delete the node modules as it is a heavy file
+
+2. CREATE DOCKERFILE:
+
+    a) go to vs code extn and search Docker and install it..
+    b) in the projectfile (like frontend & server) create another file called Dockerfile 
+
+    c) In the docker file:
+
+        *) FROM (base)
+            -) eg.. FROM node or FROM node:(version)
+        
+        *) WORKDIR /myapp
+            this will create a folder in the container that will hold this dockerfile image
+        
+        *) COPY . .  or COPY . /myapp.
+
+        *) RUN npm install
+            since we had removed the node modules earlier, so we are trying to create the module inside the folder that will be inside the container..
+
+        *) EXPOSE 3000
+            the port that you want to expose for the frontend or the backend
+
+        *)  CMD ["npm", "start"] or the command to start the app like "npm", "run", "dev"
+
+3. CREATE DOCKER IMAGE:
+
+    a) in the terminal-
+        1) cd appname
+        2) docker build .
+            -) this will create the image and provide us with the image id 
+        3) to check the image that has been created - 
+            -) docker image ls
+                this will show the list of all thge images that we have
+
+4. RUN THE DOCKER IMAGE INSIDE THE CONTAINER:
+
+    a) simple run command - docker run (image id).. eg docker run 4aefca3sd
+        this will run the application inside the container but..
+            1) the application will be stuck, so cannot use the same terminal to do anything else
+            2) cannot access the application directly..
+                -) so in this situation:
+                    a) open a new terminal-
+                        go inside the app
+                    b) docker ps  ....   (//this is very important command, used to check docker status in any mode...//) ****
+                        ps stands for process status
+                        this will show the container id and a default name for the container
+                    c) to stop the container just type -
+                        -) docker stop (container name)
+    b) binding run command - docker run -p 3000:3000 (image id)
+            -) this will run the application and the 3000:3000 is the port binding to access this container.. 
+            -) but again the issue is that the terminal is freezed and cannot use the same one to run anything further 
+    c) detached run command - docker run -d -p 3000:3000 (image id)
+            -) this will run the container in detached mode..
+
+5. RUNNING MULTIPLE CONTAINERS:
+
+    a) just bind a differnt port to mount the same image in a differnt container..
+        eg...  docker run -d -p 3001:3000 (image id) ... as 3000 was already in use...
+
+6. NOW DETAILED INFO ABOUT DOCKER:
+
+    a) as we earler saw docker ps command shows list of containers, but now lets learn that it shows only list of running containers.. so to view list of all containers including all the ones stopped and paused.. ... docker ps -a
+
+
+    
+
+                
+
+
+
+
+
+
