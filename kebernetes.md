@@ -533,10 +533,10 @@ There are 6 kinds of workloads:
                   storage: 1Gi
                 accessModes:
                   - ReadWriteOnce
-                persistentVolumeReclaimPolicy: Retain # This will help in rtaining this
-                                                                      volume
-                storageClassName: local-storage #this clould be cloud-storage,
-                                                              network-storage
+                persistentVolumeReclaimPolicy: Retain # This will help
+                                                        in retaining this volume
+                storageClassName: local-storage #this clould be
+                                  cloud-storage, network-storage
                 hostPath:
                   path: /mnt/data
 
@@ -604,29 +604,24 @@ There are 6 kinds of workloads:
 
         NOW YOU CAN APPLY THIS IN DEPLOYMENT OR REPLICASET:
 
-                  make sure yoiu dlete the previous deployemnt... then edit the deployment.yml ->
+                  make sure you delete the previous deployemnt... then edit the deployment.yml ->
 
                   kind: Deployment
                   apiVersion: apps/v1
-
                   metadata:
                     name: nginx-deployment
                     namespace: nginx
                     labels:
                       app: nginx
-
                   spec:
                     replicas: 4
                     selector:
                       matchLabels:
                         app: nginx
-
                     template:
-
                       metadata:
                         labels:
                           app: nginx
-
                       spec:
                         containers:
                         - name: nginx
@@ -1036,7 +1031,12 @@ There are 6 kinds of workloads:
 
         We must create service of StatefulSets before the manifest of itself, as we will require the service name in the StatefulSet manifest file..
 
-        ## Service of statefulsets: it will be headless service
+        ## Service of statefulsets: it will be headless service: Headless Service (clusterIP: None) is required because StatefulSet needs direct DNS for each Pod.
+        Example DNS:
+          mysql-0.mysql-service
+          mysql-1.mysql-service
+
+                Service.yml:
 
                     kind: Service
                     apiVersion: v1
@@ -1044,10 +1044,9 @@ There are 6 kinds of workloads:
                       name: mysql-service
                       namespace: mysql
                     spec:
-                      clusterIP: none
+                      clusterIP: None
                       selector:
-                        matchLabels:
-                          app: mysql
+                        app: mysql
                       ports:
                       - name: mysql
                         protocol: TCP
@@ -1056,7 +1055,7 @@ There are 6 kinds of workloads:
 
       #### Now create the statfulset.yml
 
-                    kind: StatefulSets
+                    kind: StatefulSet
                     apiVersion: apps/v1
                     metadata:
                       name: mysql-statefulset
@@ -1089,7 +1088,8 @@ There are 6 kinds of workloads:
                       - metadata:
                           name: mysql-data
                         spec:
-                          accessModes: "ReadWriteOnce"
+                          accessModes:
+                            - ReadWriteOnce
                           resources:
                             requests:
                               storage: 1Gi
@@ -1124,6 +1124,8 @@ There are 6 kinds of workloads:
 
         This is a file that contains all the configurations and env variables of any pod, so that, when any changes are required to be made, it can directly be done from this file...
 
+        ConfigMap is used to store non-sensitive configuration data separately from the container image.
+
         ### EXAMPLE:
             kind: ConfigMap
             apiVersion: v1
@@ -1132,6 +1134,8 @@ There are 6 kinds of workloads:
               namespace: mysql
             data:
               MYSQL_DATABASE: devops
+
+          Note: ConfigMap can also be mounted as a file inside container (like config file).
 
           -> Now in StatefulSets.yml
 
@@ -1148,7 +1152,13 @@ There are 6 kinds of workloads:
 
 # SECRETS:
 
+    Secret stores sensitive data (passwords, tokens), but by default it is only base64 encoded, not encrypted.
+
      Now this is related to the value of the keys in the configmap. This will encode the value and then when used in deployment or statefulsets, it will give extra secutity.. this secret file is converted to binary, which is not decodable easily..
+
+     Secrets can be:
+      ✅ env variables
+      ✅ mounted as files
 
       ###EXAMPLE:
 
@@ -1186,7 +1196,6 @@ There are 6 kinds of workloads:
 
                  kind: Deployment
                   apiVersion: apps/v1
-
                   metadata:
                     name: nginx-deployment
                     namespace: nginx
@@ -1207,13 +1216,13 @@ There are 6 kinds of workloads:
                           image: nginx:1.14.2
                           ports:
                           - containerPort: 80
-                            resources:                         ####****
-                              requests:
-                                cpu: 100m
-                                memory: 128Mi
-                              limits:
-                                cpu: 200m
-                                memory: 256Mi
+                          resources:                         ####****
+                            requests:
+                              cpu: 100m
+                              memory: 128Mi
+                            limits:
+                              cpu: 200m
+                              memory: 256Mi
                           volumeMounts:
                           - mountPath: /usr/share/nginx/html
                             name: my-volume
@@ -1226,9 +1235,9 @@ There are 6 kinds of workloads:
 
     This is used to make sure that a pod is running correctly or not in a port.. This is done by making sure that the pod requests internally on the port no.. Depending on the request it makes:
         there are 3 types of probes:
-          .) Liveness Probe : Checks if the probe is live
-          .) Readiness Probe : Checks if the pod is ready
-          .) Startup Probe: Checks if the pod creation has started
+          .) Liveness Probe : Checks if the probe is live.. restart container if unhealthy
+          .) Readiness Probe : Checks if the pod is ready. control traffic (Service will not send traffic if not ready)
+          .) Startup Probe: Checks if the pod creation has started. delay liveness check until app fully starts
 
       ###EXAMPLE:
           lets go back to 1 tier app that we did for node js:
@@ -1280,8 +1289,6 @@ There are 6 kinds of workloads:
           kubectl get pods -n one-tier
         copy the pod name and then:
           kubectl describe pods/(pod_name) -n one-tier
-
-      ***********BUT NOTE: It will fail in this case, as this is running on ClusterIP
 
 # TAINTS/TOLERATIONS:
 
@@ -1342,8 +1349,8 @@ There are 6 kinds of workloads:
     there are 3 main types of autoscaling:
       .) HPA (horizontal pod autoscaling)  .) VPA (vertical pod autoscaling) .) KEDA (Kubernetes event driven autoscaling)
 
-      Here you will need to understand the term Metrics: It means number of quantifiable resources (like CPU, RAM usage etc.)
-        For this you must have a METRICS node installed in the KUBE-SYSTEM ns when kind cluster or any other cluster..
+      Here you will need to understand the term METRICS: It means number of quantifiable resources (like CPU, RAM usage etc.)
+        For this you must have a METRICS server installed in the KUBE-SYSTEM ns when kind cluster or any other cluster..
 
     Step1: use the following link to download and isntall metrics server in kind cluster:
 
@@ -1377,12 +1384,152 @@ There are 6 kinds of workloads:
 
           This is focused on autosacling by creating more replicas.. It is generally used for stateless apps (frontend - backend)
 
-        For this lets create another directory like nginx : apache
+        For this lets create another directory like nginx: apache
             mkdir apache
 
         Now create ns:
 
-                        kind: Namespace
-                        apiVersion: v1
-                        metadata:
-                          name: apache
+                kind: Namespace
+                apiVersion: v1
+                metaData:
+                  name: apache
+
+        Now create its deployment:
+
+              kind: Deployment
+              apiVersion: apps/v1
+              metadata:
+                name: apache-deployment
+                namespace: apache
+                labels:
+                  app: apache-app
+              spec:
+                replicas: 1
+                selector:
+                  matchLabels:
+                    app: apache-app
+                template:
+                  metadata:
+                    labels:
+                      app: apache-app
+                  spec:
+                    containers:
+                    - name: apache
+                      image: httpd:latest
+                      ports:
+                      - containerPort: 80
+                      resources:       ####**** (this will be autoscaled)
+                        requests:
+                          cpu: 100m
+                          memory: 128Mi
+                        limits:
+                          cpu: 200m
+                          memory: 256Mi
+
+        Now create a Service:
+
+              apiVersion: v1
+                kind: Service
+                metadata:
+                  name: apache-service
+                  namespace: apache
+                spec:
+                  selector:
+                    app: apache-app
+                  ports:
+                  - protocol: TCP
+                    port: 80
+                    targetPort: 80
+                  type: ClusterIP
+
+        ##Remember: at any point after creating a service, if you want to access it from outside:
+          curl http://apache-service(svc_name).apache(ns).svc.cluster.local
+
+
+
+
+        Now if you check with the EC2 public ip on port 80, you should see apache hosted.. it will say "It Works"
+
+        NOW CREATE HPA.YML: ### (Note: carefully as this is a bit different than the above manifest files....)
+
+              kind: HorizontalPodAutoscaler
+              apiVersion: autoscaling/v2
+              metaData:
+                name: apache-hpa
+                namespace: apache
+              spec:
+                scaleTargetRef:
+                  kind: Deployment
+                  name: apache-deployment
+                  apiVersion: apps/v1
+                minReplicas: 1
+                maxReplicas: 5
+                metrics:
+                - type: Resource
+                  resource:
+                    name: cpu
+                    target:
+                      type: Utilization
+                      averageUtilization: 5
+
+          Now lets forward the port:
+            sudo -E kubectl port-forward service/apache-service -n apache 80:80 --address=0.0.0.0
+
+        NOW LETS CREATE A LOADGENERATOR TO CREATE LOAD IN THE POD:
+
+          We will now create a pod in the name of loadgenerator:
+            kubectl run -i --tty load-generator --image=busybox -n apache /bin/sh
+          Now when the it opens.. run the following command lines:
+            while true; wget -q -O- http://apache-service.apache.svc.cluster.local; done
+          Now it should continiously get the site....
+
+          Now open another terminal in the system and do ssh again to to the ec2 instance (as the other one is now busy generating the load and the terminal is unusable..)
+
+          Now if you check..
+            kubectl get hpa -n apache
+              you will see that cpu utilization has boomed so the replicas will auto boom up to 5 ..
+
+# VPA:
+
+VPA:
+-> does NOT increase replicas
+-> increases CPU/memory per Pod
+
+    First we will need to download and install the vpa featues from official k8s github page. Follow the instruction given on the page;
+      https://github.com/kubernetes/autoscaler/blob/master/vertical-pod-autoscaler/docs/installation.md
+        use this process from the above page:
+          git clone https://github.com/kubernetes/autoscaler.git
+          cd autoscaler/vertical-pod-autoscaler
+          git checkout origin/vpa-release-1.0
+          REGISTRY=registry.k8s.io/autoscaling TAG=1.0.0 ./hack/vpa-process-yamls.sh apply
+
+    Now lets start from where we ended HPA (assuming all the deployment and service is already created) and delete the hpa and stop the load-generator:
+
+    Create vpa.yml
+
+            kind: VerticalPodAutoscaler
+            apiVesrsion: autoscaling.k8s.io/v1 ###***
+            metaData:
+              name: apache-vpa
+              namespace: apache
+            spec:
+              targetRef:     #### this is not scaleTargetRef
+                kind: Deployment
+                name: apache-deployment
+                apiVersion: apps/v1
+              updatePolicy: #### new thing
+                updateMode: "Auto" ### other values Initial/Off
+
+        now:
+          kubectl get vpa -n apache
+
+        Now forward the port to the public ip:
+          sudo -E kubectl port-forward service/apache-service -n apache 80:80 --address=0.0.0.0
+
+        now again in one terminal watch this cpu and memory usage
+          watch kubectl get vpa -n apache
+        and in the other terminal run the load-generator
+
+        once the load generator has started, it might take some time, but you will see that the more cpu space will be allocated to the pod as the load increases..
+
+# RBAC: (Role Based Access Control)
