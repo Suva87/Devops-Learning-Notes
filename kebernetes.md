@@ -1533,3 +1533,257 @@ VPA:
         once the load generator has started, it might take some time, but you will see that the more cpu space will be allocated to the pod as the load increases..
 
 # RBAC: (Role Based Access Control)
+
+        In K8S, each cluster can have many users. These users can be bound to a particular role respectively.. this binding between the user and the role is called Role Binding..
+
+        When many users or teams are using the same Kubernetes cluster, who is allowed to do what?
+          That is where RBAC comes in.
+
+        RBAC is the permission system of Kubernetes.
+
+        It decides:
+          Who can do something
+          What they can do
+          On which resource
+          In which scope
+
+        In Kubernetes, permission is given to a subject. RBAC permissions are usually given to identities OR subjects such as:
+          ->  User
+          -> Group
+          -> ServiceAccount
+
+        In beginner learning, you will often hear “user”, but inside Kubernetes practice, very commonly permissions are given to ServiceAccounts. Because many applications, Pods, controllers, or tools inside the cluster also need permissions to talk to the Kubernetes API.
+          -> Human user = you / admin / developer
+          -> ServiceAccount = an identity used by an app or Pod inside Kubernetes
+
+        USERS:
+          Kubernetes RBAC can work with users, but Kubernetes itself does not fully create and manage normal users the same way it creates ServiceAccounts.
+            ServiceAccounts are Kubernetes objects. But Users are usually managed by external authentication systems, such as:
+              .) client certificates
+              .) identity provider
+              .) OpenID Connect
+              .) cloud IAM systems
+            So Kubernetes can authorize users with RBAC, but often does not itself store them as objects like ServiceAccounts.
+
+        GROUPS:
+
+          Again, just like User, Group usually comes from an external identity/authentication system.
+
+        SERVICE ACCOUNT:
+          A ServiceAccount is an identity used inside Kubernetes, mostly by:
+            -> Pods
+            -> applications running in Pods
+            -> controllers
+            -> automation tools inside the cluster
+          A ServiceAccount is like a Kubernetes identity card for a workload.
+
+          REMEMBER: A ServiceAccount is not a Pod. A ServiceAccount is not a Role. A ServiceAccount is not permission itself:    It is only an identity.
+            So remember this carefully:
+              -> ServiceAccount = who
+              -> Role = what permission
+              -> RoleBinding = connection between the two
+
+          Where does a ServiceAccount live?
+            A ServiceAccount is namespace-scoped. That means it belongs to one namespace.
+
+          Every namespace automatically gets a ServiceAccount called: default
+          So if you create a namespace, Kubernetes usually creates: default ServiceAccount in that namespace. And if you create a Pod without specifying any ServiceAccount, the Pod will use that namespace’s default ServiceAccount.
+
+          Why not always use the default ServiceAccount?
+            Because the default ServiceAccount is generic. If many Pods use the same default ServiceAccount, then permissions can become messy and unsafe.
+
+          ServiceAccount YAML:
+
+            kind: ServiceAccount
+            apiVersion: v1
+            metaData:
+              name: pod-reader-sa
+              namespace: dev
+
+          ****REMEMBER: Kubernetes RBAC = Authorization only, RBAC does not do authetication of any user or group..
+
+    #### RESOURCE AND VERBS:
+
+        A) Resource
+          A resource means Kubernetes object.
+            Examples:
+                pods
+                services
+                deployments
+                configmaps
+                secrets
+                namespaces
+
+        B) Verb
+          A verb means action.
+            Examples:
+              get = read one object
+              list = list many objects
+              watch = keep watching for changes
+              create = create object
+              update = modify existing object
+              patch = partially modify
+              delete = remove object
+
+        So a permission is basically: verb + resource
+            Example:
+              get pods
+              list services
+              create deployments
+              delete pods
+            This is the heart of RBAC.
+
+
+
+    ### THE 4 MAIN BUILDING BLOCKS OF RBAC:
+                -> Role
+                -> RoleBinding
+                -> ClusterRole
+                -> ClusterRoleBinding
+
+          1) Role —
+              A Role is a set of permissions inside one namespace. A Role is namespace-scoped.
+                If you create a Role in namespace dev, it applies only to that namespace, not the whole cluster
+                    Example:
+                      A Role may say:
+                        -> can get pods
+                        -> can list pods
+                        -> can watch pods
+                      But only in namespace dev
+          2) RoleBinding —
+              A Role by itself is just a permission document. It does nothing until attached to someone. That attachment is called: RoleBinding
+                And it is also namespace-scoped.
+              So RoleBinding usually means: “Give this person (user/group) or service-account this Role in this namespace.”
+
+          3) ClusterRole —
+              A ClusterRole is similar to a Role, but for the whole cluster. It is not limited to one namespace.
+                  Examples:
+                    -> can view nodes
+                    -> can view namespaces
+                    -> can manage cluster-wide settings
+
+          4) ClusterRoleBinding —
+              This binds a ClusterRole to a subject. gives ClusterRole permissions cluster-wide.
+
+              ***** Remember:  A RoleBinding can bind:
+                                  -> a Role
+                                  -> or even a ClusterRole
+                                But the effect of that RoleBinding is still only within that namespace.
+                    So, Binding scope matters a lot.
+
+
+      ### MANIFEST FILES:
+
+          1) First YAML — Role
+              Suppose namespace is dev. We want to define a role with permission only to:
+                  -> get pods
+                  -> list pods
+                  -> watch pods
+
+                  kind: Role
+                  apiVersion: rbac.authorization.k8s.io/v1   ##****
+                  metaData:
+                    name: pod-reader
+                    namespace: dev
+                  rules:
+                  - apiGroups: [""]  ### ** explanation after the yml file..
+                    verbs: ["get", "list", "watch"]
+                    resources: ["pods"]
+
+              Explanation of apiGroups: [""]:
+                  Kubernetes resources belong to API groups.
+                    Core resources like: pods, services, configmaps etc.. belong to the core API group, which is written as empty string [""]. This means core resources.
+                    But Deployments belong to apps group, not empty string. ["apps"]
+
+          2) Second YAML — RoleBinding
+              Now let us assign that Role.
+
+                Example using a ServiceAccount, so create a SA first:
+                serviceaccount.yml
+
+                    kind: ServiceAccount
+                    apiVersion: v1
+                    metaData:
+                      name: dev-user-sa
+                      namespace: dev
+
+                rolebinding.yml
+
+                  kind: RoleBinding
+                  apiVersion: rbac.authorization.k8s.io/v1
+                  metaData:
+                    name: pod-reader-rolebinding
+                    namespace: dev
+                  subjects:                  ######*****
+                  - kind: ServiceAccount
+                    name: dev-user-sa
+                    namespace: dev
+                  roleRefs:                  ######*****
+                    kind: Role
+                    name: pod-reader
+                    apiGroup: rbac.authorization.k8s.io
+
+                explanation of SUBJECTS:
+                  This means: who receives the permission.
+                explanation of ROLRREFS:
+                  This means: which Role is being assigned.
+                ALL-IN-ALL MEANING: Give ServiceAccount dev-user the permissions defined in Role pod-reader in namespace dev.
+
+        3) ClusterRole -
+
+                apiVersion: rbac.authorization.k8s.io/v1
+                kind: ClusterRole
+                metadata:
+                  name: pod-reader-cluster
+                rules:
+                - apiGroups: [""]
+                  resources: ["pods"]
+                  verbs: ["get", "list", "watch"]
+
+
+        4) ClusterRoleBinding -
+
+                apiVersion: rbac.authorization.k8s.io/v1
+                kind: ClusterRoleBinding
+                metadata:
+                  name: pod-reader-cluster-binding
+                subjects:
+                - kind: ServiceAccount
+                  name: dev-user
+                  namespace: dev
+                roleRef:
+                  apiGroup: rbac.authorization.k8s.io
+                  kind: ClusterRole
+                  name: pod-reader-cluster
+
+        5) What about Deployments?
+
+                rules:
+                - apiGroups: ["apps"]
+                  resources: ["deployments"]
+                  verbs: ["get", "list", "watch", "create"]
+
+        6) Multiple resources in one Role-
+
+                apiVersion: rbac.authorization.k8s.io/v1
+                kind: Role
+                metadata:
+                  name: app-manager
+                  namespace: dev
+                rules:
+                - apiGroups: [""]
+                  resources: ["pods", "services"]
+                  verbs: ["get", "list", "watch"]
+                - apiGroups: ["apps"]
+                  resources: ["deployments"]
+                  verbs: ["get", "list", "create", "update"]
+
+    ### How to inspect details :
+
+        kubectl describe role pod-reader -n dev
+        kubectl describe rolebinding read-pods-binding -n dev
+        kubectl describe clusterrole pod-reader-cluster
+        kubectl describe clusterrolebinding pod-reader-cluster-binding
+
+    ### Very useful command: can-i :
+        kubectl auth can-i get pods -n dev
