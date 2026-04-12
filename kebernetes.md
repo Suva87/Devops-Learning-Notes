@@ -1787,3 +1787,626 @@ VPA:
 
     ### Very useful command: can-i :
         kubectl auth can-i get pods -n dev
+
+# HELM:
+
+    It is a package that helps in accessing all the key values of manifest files in a combined place...
+    A tool that lets you package, reuse, and manage Kubernetes applications
+
+    But we neede to install HELM as its a 3rd party package for K8S..
+
+    to Install:
+      -> Go to this site: https://helm.sh/docs/intro/install/
+      -> Follow the installation steps...
+
+    what is a chart?
+     A Chart is a package of Kubernetes YAML files.
+     Think: 👉 Chart = folder containing all your YAML + templates
+    What is a release ?
+      A Release is a running instance of a Chart.
+      Example:
+        Chart = nginx app template
+        Release 1 = nginx running in dev
+        Release 2 = nginx running in prod
+    What are values?
+      Values are variables used in templates.
+    Think of Helm like this:
+      Chart = blueprint of a house
+      Values = custom settings (color, size, rooms)
+      Release = actual built house
+
+## HOW TO USE HELM STEP BY STEP:
+
+    🚀### STEP 1: Create a chart:
+      helm create acache-helm
+        -> You will see a folder (apache-helm) is created inside the helm directory..
+        -> When you go ionside the folder, you will see
+            -> charts.yml
+            -> charts
+            -> templates
+            -> values.yml
+      to check the structure of Helm, you can install another package called "TREE"
+          -> sudo apt install tree
+      now just write -> tree
+          and you will be able to see the structure of helm..
+              example:
+                my-chart/
+                  Chart.yaml
+                  values.yaml
+                  templates/
+                    deployment.yaml
+                    service.yaml
+                    ingress.yaml
+      So this means that you do not need to write the yml files all by yourself, helm gives you the templates..
+            for example: when you go inside templates (templating engine) and open deployment.yaml
+              you can see that who code already written, but with value placeholders..
+                like:
+                  metadata:
+                    name: {{ include "apache-helm.fullname" . }}
+                  spec:
+                    replicas: {{ .Values.replicaCount }}
+
+              You can insert the values in the values.yml file...
+
+              NOTE: BUT FOR SAFETY, OPEN ALL THE YAML FILES AND CHECK IF SOMEWHERE THE .VALUE PLACEHOLDER IS MISSING..
+                for example, sometimes in service.yaml, you might find that targetPort is hardcoded as httpd. In such cases edit it with the .value placeholder.. {{ .Values.service.targetPort }}
+
+              Now when inserting the values, open values.yaml ->
+                edit in the values... that is it...
+
+           ### Doubt: I did not see a persistentVolume or pvc manifest file, neither any mention of it in the deployment file... so how can helm help me generate them?
+
+                  In such a case we need to create a base resuable chart (a Helm chart folder that contains your reusable structure)
+                    for example:
+                      deployment template
+                      service template
+                      optional pvc template
+                      optional ingress template
+                      helper templates
+                  Where do I store a reusable Helm chart so another machine can pull it later?
+                      There are three levels of answer, from beginner to real-world.
+                        1) Level 1 — keep the chart in Git
+                          Example mental flow:
+                            git clone <your-repo>
+                            cd base-app-chart
+                            helm install myapp ./ -n dev -f values-dev.yaml
+                          But this method has a limitation: It is source-code reuse, not yet chart distribution. Meaning: you are reusing the folder by cloning code, not by pulling a packaged chart.
+                        2) Level 2 — package the chart and store it in a Helm chart repository
+                          Helm has an official concept called a chart repository.
+                            Step A — create your reusable chart
+                            Step B — package it
+                              helm package base-app-chart
+                              This creates something like: base-app-chart-0.1.0.tgz
+                              Helm charts are packaged as versioned tar archives, and chart repositories store these packaged charts plus an index.yaml.
+                            Step C — store that package in a chart repository
+                              The Helm docs say a chart repository can be hosted on things like: Amazon S3, Google Cloud Storage, GitHub Pages, or your own web server
+                            Step D — use it from another machine
+                              helm repo add myrepo https://example.com/charts
+                              helm repo update
+                              helm install myapp myrepo/base-app-chart -n dev -f values-dev.yaml
+                          Now you are no longer copying folders manually. Now you are pulling a reusable chart from a central place.
+                        3) Level 3 — store charts in an OCI registry
+                          This is the more modern method. The official Helm docs recommend using OCI-based registries to store and share chart packages, and specifically say this is the recommended way if you are considering how to distribute charts. Helm also supports working with container registries that have OCI support.
+
+                          This is powerful because many teams already use a container registry for Docker images, such as:
+                              Amazon ECR
+                              Azure Container Registry
+                              Google Artifact Registry
+                              Docker Hub
+                              Harbor
+                              Artifactory
+                          So instead of only pushing Docker images there, you can also push Helm charts there.
+                            Step A — package chart:
+                              helm package base-app-chart
+                            Step B — log in to registry
+                              helm registry login <your-registry>
+                            Step C — push chart
+                              helm push base-app-chart-0.1.0.tgz oci://<your-registry>/helm-charts
+                            Step D — install from another machine
+                              helm install myapp oci://<your-registry>/helm-charts/base-app-chart --version 0.1.0 -n dev -f values-dev.yaml
+
+      🚀### STEP 2: Now package the helm:
+          Come out of the helm folder/directory, created by apache-helm and then package the directory..
+
+                helm package apache-helm
+
+      🚀### STEP 3: Now install the chart: (for this lets assume that we need to have 3 different environment of the same app - dev, production, staging)
+        dev -> helm install dev-apache(env-name) apache-helm(chart-name) -n dev-apache --create-namespace
+                (here i am creating the namespace dev-apache as well, otherwise, this helm would been created in default namespace)
+        prod-> helm install prod-apache apache-helm -n prod-apache --create-namespace
+        stg -> helm install stage-apache apache-helm -n stage-apache --create-namespace
+
+             UPGRADES TO NEW REVISIONS:
+             now lets say we need more replicas for production:
+              -> we can directly change the values.yaml of templates..
+              -> now open the chart.yaml, upgrade the appVersion to a next figure.. eg.. 1.16.0 -> 1.16.1
+              -> again package the helm - helm package apache-helm
+                  Packaging is needed ONLY when: you are pushing to repo / registry. 👉 NOT required for local upgrade.
+              -> then: helm upgrade prod-apache ./apache-helm -n prod-apache
+            now if you do:
+              kubectl get pods -n dev-apache     -> you will still see old no. of pods
+            but in prod:
+              kubectl get pods -n prod-apache    -> you will see new no. of pods..
+
+             DOWNGRADE TO PREVIOUS REVISIONS:
+             now lets say the prod needs to roll back to old no. of pods:
+              we can simply rollback the helm to the previous version;
+                  helm rollback prod-apache 1(revision no.) -n prod-apache
+
+      🚀### STEP 4: check the service name so that you can forward the port in the next step:
+              kubectl get svc -n dev-apache
+      🚀### STEP 5: forward the port:
+              kubectl port-forward svc/<service-name> -n dev-apache 8000:8000 --address=0.0.0.0 &
+
+      🚀### UNINSTALL:
+
+          To uninstall deployments:
+              helm uninstall prod-apache -n prod-apache
+          To uninstall helm alltogether at any point:
+              helm uninstall apache-helm
+
+# INIT CONTAINERS & SIDECAR CONTAINERS:
+
+      Remember: 👉 A Pod can contain multiple containers
+        👉 WHY multiple containers?
+          Suppose you have a main app container:
+            Example:
+                NodeJS app
+                Nginx
+                Backend API
+              But before starting it, you need:
+                wait for database
+                download config file
+                run migration script
+              OR alongside it, you need:
+                logging agent
+                monitoring agent
+                proxy
+            So Kubernetes gives:
+            👉 Init Containers
+            👉 Sidecar Containers
+
+# Init Containers — concept:
+
+        👉 Init container = runs BEFORE main container
+              -> runs one by one
+              -> must complete successfully
+              -> then main container starts
+        👉 Init container = setup step
+              Like:
+                wait for db
+                preparing environment
+        👉  YAML example:
+              apiVersion: v1
+              kind: Pod
+              metadata:
+                name: init-demo
+              spec:
+                initContainers:       ######*****
+                - name: wait-for-db
+                  image: busybox
+                  command: ['sh', '-c', 'echo waiting for db; sleep 10']
+                containers:
+                - name: main-app
+                  image: nginx
+
+# Sidecar Container — concept:
+
+        👉 Sidecar = container that runs alongside main container
+            Example:
+              Main app:
+                NodeJS API
+              Sidecar:
+                log collector
+                proxy
+                metrics exporter
+        👉 Sidecar = helper assistant
+        👉  YAML example:
+              apiVersion: v1
+              kind: Pod
+              metadata:
+                name: sidecar-demo
+              spec:
+                containers:
+                - name: main-app
+                  image: nginx
+
+                - name: log-sidecar
+                  image: busybox
+                  command: ['sh', '-c', 'while true; do echo logging; sleep 5; done']
+
+        👉 Both containers:
+            share network
+            share storage (if volumes used)
+
+# Real-world examples:
+
+NOW LET'S BUILD A REALISTIC APP:
+👉 NodeJS API + MongoDB + Secret outside Helm + StatefulSet + PVC(statefulsets) + Init Container + Optional Sidecar + HPA + VPA
+
+    In real-world Helm:
+      values.yaml does NOT contain actual passwords.
+      It only contains:
+      - secret name
+      - configuration
+      Actual secret values are created outside Helm.
+      Deployment reads secrets using:
+        valueFrom → secretKeyRef
+
+    We are not putting everything into one Pod. We are separating the application into two workloads:
+      <> MongoDB - It is stateful
+         ->  Secret - The MongoDB credentials will be stored in a Kubernetes Secret created outside Helm
+      <> NodeJS API
+         ->  Init container
+         ->  Sidecar (optional: Kubernetes documents sidecar logging patterns, but also notes that many applications should log directly to stdout/stderr, with sidecars used for special cases such as file-based logs or log-agent patterns.)
+
+## Full flow before we touch code:
+
+        Create namespace
+        Create external Secret manually
+        Install Helm chart
+        Helm creates:
+        .) MongoDB Service
+        .) MongoDB headless Service
+        .) MongoDB StatefulSet
+        .) NodeJS Deployment
+        .) API Service
+        .) optional HPA
+        .) optional VPA
+        MongoDB Pod gets stable identity and persistent volume
+        NodeJS Pod starts
+        Init container waits for MongoDB Service
+        NodeJS starts
+        Optional sidecar starts with NodeJS
+        HPA/VPA act later based on policy and metrics
+
+      🧠 STEP 0 — CREATE NS AND SECRET (OUTSIDE HELM)
+
+            kubectl create namespace dev
+
+            kubectl create secret generic mongo-secret \
+              -n dev \
+              --from-literal=MONGO_INITDB_ROOT_USERNAME=myuser \
+              --from-literal=MONGO_INITDB_ROOT_PASSWORD='StrongPassword123'
+
+          Verify::
+              kubectl get secret -n dev
+              kubectl describe secret mongo-secret -n dev
+
+
+      🧠 STEP 1 — : Helm create chart
+
+            -> helm create my-app -n dev
+
+            -> edit the tree to add the additional templates and edit the templates as per below steps:
+
+            📦 HELM CHART STRUCTURE:
+
+                nodejs-mongo-prod-chart/
+                  Chart.yaml
+                  values.yaml
+                  templates/
+                    mongodb-headless-service.yaml
+                    mongodb-statefulset.yaml
+                    mongodb-service.yaml
+                    api-deployment.yaml
+                    api-service.yaml
+                    hpa.yaml
+                    vpa.yaml
+
+      ⚙️ STEP 2- Chart.yaml
+
+                  apiVersion: v2
+                  name: nodejs-mongo-prod-chart
+                  description: Production-style Helm chart for NodeJS API with MongoDB
+                  type: application
+                  version: 0.1.0
+                  appVersion: "1.0.0"
+
+      ⚙️ STEP 3 — values.yaml (CONTROL CENTER):
+
+                    namespace: dev
+
+                    mongodb:
+                      name: mongodb
+                      image: mongo:7
+                      port: 27017
+                      database: mydb
+                      replicaCount: 1
+                      auth:
+                        existingSecret: mongo-secret
+                        usernameKey: MONGO_INITDB_ROOT_USERNAME
+                        passwordKey: MONGO_INITDB_ROOT_PASSWORD
+                      persistence:
+                        enabled: true
+                        size: 10Gi
+                        storageClassName: ""
+                        accessModes:
+                          - ReadWriteOnce
+
+                    api:
+                      replicaCount: 2
+                      image:
+                        repository: yourdockerhub/node-api
+                        tag: latest
+                        pullPolicy: IfNotPresent
+                      containerPort: 5000
+                      service:
+                        type: ClusterIP
+                        port: 80
+                      resources:
+                        requests:
+                          cpu: "200m"
+                          memory: "256Mi"
+                        limits:
+                          cpu: "500m"
+                          memory: "512Mi"
+
+                    initContainer:
+                      enabled: true
+                      image: busybox:1.36
+
+                    logging:
+                      mode: stdout   # stdout or file-sidecar
+                      sidecar:
+                        enabled: false
+                        image: busybox:1.36
+                      logDir: /var/log/app
+                      logFile: /var/log/app/app.log
+
+                    hpa:
+                      enabled: true
+                      minReplicas: 2
+                      maxReplicas: 6
+                      targetCPUUtilizationPercentage: 70
+
+                    vpa:
+                      enabled: false
+                      updateMode: "Off"   # Off, Initial, Auto
+                      minAllowed:
+                        cpu: 100m
+                        memory: 128Mi
+                      maxAllowed:
+                        cpu: 1000m
+                        memory: 1Gi
+
+      📦 STEP 4 — mongodb-headless-service.yaml:
+
+                  apiVersion: v1
+                  kind: Service
+                  metadata:
+                    name: {{ .Release.Name }}-mongodb-headless
+                    namespace: {{ .Values.namespace }}
+                  spec:
+                    clusterIP: None
+                    selector:
+                      app: {{ .Release.Name }}-mongodb
+                    ports:
+                      - name: mongodb
+                        port: {{ .Values.mongodb.port }}
+                        targetPort: {{ .Values.mongodb.port }}
+
+      📦 STEP 5 — mongodb-statefulset.yaml:
+
+                apiVersion: apps/v1
+                kind: StatefulSet
+                metadata:
+                  name: {{ .Release.Name }}-mongodb
+                  namespace: {{ .Values.namespace }}
+                spec:
+                  serviceName: {{ .Release.Name }}-mongodb-headless
+                  replicas: {{ .Values.mongodb.replicaCount }}
+                  selector:
+                    matchLabels:
+                      app: {{ .Release.Name }}-mongodb
+                  template:
+                    metadata:
+                      labels:
+                        app: {{ .Release.Name }}-mongodb
+                    spec:
+                      containers:
+                        - name: mongodb
+                          image: {{ .Values.mongodb.image }}
+                          ports:
+                            - containerPort: {{ .Values.mongodb.port }}
+                              name: mongodb
+                          env:
+                            - name: MONGO_INITDB_ROOT_USERNAME
+                              valueFrom:
+                                secretKeyRef:
+                                  name: {{ .Values.mongodb.auth.existingSecret }}
+                                  key: {{ .Values.mongodb.auth.usernameKey }}
+                            - name: MONGO_INITDB_ROOT_PASSWORD
+                              valueFrom:
+                                secretKeyRef:
+                                  name: {{ .Values.mongodb.auth.existingSecret }}
+                                  key: {{ .Values.mongodb.auth.passwordKey }}
+                          volumeMounts:
+                            - name: mongo-data
+                              mountPath: /data/db
+                  volumeClaimTemplates:
+                    - metadata:
+                        name: mongo-data
+                      spec:
+                        accessModes:
+                          {{- range .Values.mongodb.persistence.accessModes }}
+                          - {{ . }}
+                          {{- end }}
+                        resources:
+                          requests:
+                            storage: {{ .Values.mongodb.persistence.size }}
+                        {{- if .Values.mongodb.persistence.storageClassName }}
+                        storageClassName: {{ .Values.mongodb.persistence.storageClassName }}
+                        {{- end }}
+
+      📦 STEP 5 — NodeJS Deployment:
+
+                  apiVersion: apps/v1
+                  kind: Deployment
+                  metadata:
+                    name: {{ .Release.Name }}-api
+                    namespace: {{ .Values.namespace }}
+                  spec:
+                    replicas: {{ .Values.api.replicaCount }}
+                    selector:
+                      matchLabels:
+                        app: {{ .Release.Name }}-api
+                    template:
+                      metadata:
+                        labels:
+                          app: {{ .Release.Name }}-api
+                      spec:
+                        {{- if .Values.initContainer.enabled }}
+                        initContainers:
+                          - name: wait-for-mongodb
+                            image: {{ .Values.initContainer.image }}
+                            command:
+                              - sh
+                              - -c
+                              - |
+                                until nc -z {{ .Release.Name }}-mongodb {{ .Values.mongodb.port }}; do
+                                  echo "Waiting for MongoDB at {{ .Release.Name }}-mongodb:{{ .Values.mongodb.port }}..."
+                                  sleep 2
+                                done
+                                echo "MongoDB is reachable"
+                        {{- end }}
+
+                        containers:
+                          - name: node-api
+                            image: "{{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}"
+                            imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+                            ports:
+                              - containerPort: {{ .Values.api.containerPort }}
+                            env:
+                              - name: PORT
+                                value: "{{ .Values.api.containerPort }}"
+                              - name: MONGO_HOST
+                                value: "{{ .Release.Name }}-mongodb"
+                              - name: MONGO_PORT
+                                value: "{{ .Values.mongodb.port }}"
+                              - name: MONGO_DB
+                                value: "{{ .Values.mongodb.database }}"
+                              - name: MONGO_USER
+                                valueFrom:
+                                  secretKeyRef:
+                                    name: {{ .Values.mongodb.auth.existingSecret }}
+                                    key: {{ .Values.mongodb.auth.usernameKey }}
+                              - name: MONGO_PASSWORD
+                                valueFrom:
+                                  secretKeyRef:
+                                    name: {{ .Values.mongodb.auth.existingSecret }}
+                                    key: {{ .Values.mongodb.auth.passwordKey }}
+                            resources:
+                              requests:
+                                cpu: {{ .Values.api.resources.requests.cpu | quote }}
+                                memory: {{ .Values.api.resources.requests.memory | quote }}
+                              limits:
+                                cpu: {{ .Values.api.resources.limits.cpu | quote }}
+                                memory: {{ .Values.api.resources.limits.memory | quote }}
+                            {{- if eq .Values.logging.mode "file-sidecar" }}
+                            volumeMounts:
+                              - name: app-logs
+                                mountPath: {{ .Values.logging.logDir }}
+                            {{- end }}
+
+                          {{- if and (eq .Values.logging.mode "file-sidecar") .Values.logging.sidecar.enabled }}
+                          - name: log-sidecar
+                            image: {{ .Values.logging.sidecar.image }}
+                            command:
+                              - sh
+                              - -c
+                              - |
+                                touch {{ .Values.logging.logFile }}
+                                tail -F {{ .Values.logging.logFile }}
+                            volumeMounts:
+                              - name: app-logs
+                                mountPath: {{ .Values.logging.logDir }}
+                          {{- end }}
+
+                        {{- if eq .Values.logging.mode "file-sidecar" }}
+                        volumes:
+                          - name: app-logs
+                            emptyDir: {}
+                        {{- end }}
+
+      📦 STEP 6 — api-service.yaml:
+
+                    apiVersion: v1
+                    kind: Service
+                    metadata:
+                      name: {{ .Release.Name }}-api
+                      namespace: {{ .Values.namespace }}
+                    spec:
+                      selector:
+                        app: {{ .Release.Name }}-api
+                      ports:
+                        - name: http
+                          port: {{ .Values.api.service.port }}
+                          targetPort: {{ .Values.api.containerPort }}
+                      type: {{ .Values.api.service.type }}
+
+      📦 STEP 7 — hpa.yaml:
+
+                    {{- if .Values.hpa.enabled }}
+                    apiVersion: autoscaling/v2
+                    kind: HorizontalPodAutoscaler
+                    metadata:
+                      name: {{ .Release.Name }}-api-hpa
+                      namespace: {{ .Values.namespace }}
+                    spec:
+                      scaleTargetRef:
+                        apiVersion: apps/v1
+                        kind: Deployment
+                        name: {{ .Release.Name }}-api
+                      minReplicas: {{ .Values.hpa.minReplicas }}
+                      maxReplicas: {{ .Values.hpa.maxReplicas }}
+                      metrics:
+                        - type: Resource
+                          resource:
+                            name: cpu
+                            target:
+                              type: Utilization
+                              averageUtilization: {{ .Values.hpa.targetCPUUtilizationPercentage }}
+                    {{- end }}
+
+      📦 STEP 8 — check for errors:
+              helm lint .
+
+      📦 STEP 9 — Render (generate) all Kubernetes YAML files from my Helm chart — but do NOT deploy them:
+              helm template myapp . -n dev
+
+                  helm template = preview final YAML. Helm replaces:
+                      {{ .Release.Name }}  --->>> myapp
+
+      📦 STEP 10 — Install the release:
+              helm install myapp . -n dev
+
+      📦 STEP 11 — Install the release:
+              helm list -n dev
+              kubectl get all -n dev
+              kubectl get pvc -n dev
+              kubectl get secret -n dev
+              kubectl get statefulset -n dev
+              kubectl get deployment -n dev
+              kubectl get hpa -n dev
+              kubectl get vpa -n dev
+
+      ---------DONE----------------------------
+
+## How to observe startup:
+
+    Watch Pods:
+      kubectl get pods -n dev -w
+    Check init container logs:
+      kubectl logs <api-pod-name> -n dev -c wait-for-mongodb
+    Check app logs:
+      kubectl logs <api-pod-name> -n dev -c node-api
+    Check sidecar logs, only if enabled:
+      kubectl logs <api-pod-name> -n dev -c log-sidecar
+
+## How to test the API:
+
+    Check the service of the node-js app (not the mongodb):
+      kubectl get svc/api-service -n dev
+    Port forward the svc:
+      kubectl port-forward svc/(svc_name) -n dev 8080:80 --address=0.0.0.0
