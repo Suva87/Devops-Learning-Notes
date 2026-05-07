@@ -77,6 +77,7 @@
 
          example: we are now configuring for creating 1 master node and 3 worker node..
 
+```YAML
             kind: Cluster
             apiVersion: (you can get this in the kind website) (kind.x-k8s.io/v1alpha4)
 
@@ -96,21 +97,32 @@
               - containerPort: 443
                 hostPort: 443
                 protocol: TCP
-
-            Esc :wq enter
+```
 
       #Step 2:
         inside the folder where you would like to create this cluster:
+
+```
             kind create cluster --name (name the cluster) --config=config.yml
+```
 
         to check:
+
+```
           kubectl cluster-info --context kind-(cluster name)
+```
 
         to ckeck the nodes in the cluster:
+
+```
           kubectl get nodes --context kind-(cluster name)
+```
 
         to set deafult a particular cluster:
+
+```
           kubectl config use-context kind-(cluster name)
+```
 
 # HOW KUBERNATES WORK:
 
@@ -136,16 +148,22 @@
 # NAMESPACE :
 
     TO get the namespaces:
+
+```
       kubectl get namespace
             or
       kubectl get ns
+```
 
     the namespace is very important, as there may be pods running in certain name sapces and may be no pods running at all... so to check:
       kubectl get pods -n (name of namespace...)
 
     # create a ns:
+
+```
       kubectl create ns (name)
         eg.. kubectl create ns nginx
+```
 
     Default namespaces exist:
         default
@@ -156,12 +174,18 @@
 # PODS:
 
     to create a pod:
+
+```
       kubectl run (pod_name) --image=(DOCKER_image_name) -n (ns_name)
         eg: kubectl run nginx --image=ngnix -n nginx
+```
 
     to check a pod:
+
+```
       kubectl get pods -n (ns_name)
         eg.. kubectl get pods -n nginx
+```
 
 # Create everything through a MANIFEST file:
 
@@ -170,38 +194,57 @@
     # creating ns through manifest file
         -> vim namespace.yml
         ->
+
+```YAML
             kind: Namespace
             apiVersion: v1
             metadata:
               name: nginx
-        ->
-          esc :wq enter
+```
 
-        -> kubectl apply -f namespace.yml
+->
+
+        ->
+
+```
+        kubectl apply -f namespace.yml
+```
 
     # creating pods through manifest file:
         -> vim pod.yml
         ->
-           kind: Pod
-           apiVersion: v1
-           metadata:
-            name: nginx-pod
-            namespace: nginx
-           spec:
-            containers:
-            - name: nginx
-              image: nginx:1.14.2
-              ports:
-              - containerPort: 80
 
-        -> esc :wq enter
-        -> kubectl apply -f pod.yml
+```yaml
+kind: Pod
+apiVersion: v1
+metadata:
+  name: nginx-pod
+  namespace: nginx
+spec:
+  containers:
+    - name: nginx
+      image: nginx:1.14.2
+      ports:
+        - containerPort: 80
+```
+
+        ->
+
+```
+        kubectl apply -f pod.yml
+```
 
         -> to get inside any pod with interactive terminal:
+
+```
               kubectl exec -it nginx-pod -n nginx -- bash
+```
 
         -> to get detailed reports of pods:
+
+```
               kubectl describe pod/nginx-pod -n nginx
+```
 
 # DEPLOYMENT:
 
@@ -294,42 +337,52 @@ There are 6 kinds of workloads:
       1. DEPLOYMENT:
                 -> vim deploment.yml
                 ->
-                  kind: Deployment
-                  apiVersion: apps/v1
-                  ### METADATA OF DEPLOYMENT
-                  metadata:
-                    name: nginx-deployment
-                    namespace: nginx
-                    labels:
-                      app: nginx
-                  ### SPECIFICATION OF DEPLOYMENT
-                  spec:
-                    replicas: 4
-                    selector:
-                      matchLabels:
-                        app: nginx
-                    ### TEMPLATE FOR POD
-                    template:
-                      ### METADATA OF POD
-                      metadata:
-                        labels:
-                          app: nginx
-                      ### SPEC OF POD
-                      spec:
-                        containers:
-                        - name: nginx
-                          image: nginx:1.14.2
-                          ports:
-                          - containerPort: 80
 
-                -> esc :wq enter
+```yaml
+kind: Deployment
+apiVersion: apps/v1
+### METADATA OF DEPLOYMENT
+metadata:
+  name: nginx-deployment
+  namespace: nginx
+  labels:
+    app: nginx
+### SPECIFICATION OF DEPLOYMENT
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: nginx
+  ### TEMPLATE FOR POD
+  template:
+    ### METADATA OF POD
+    metadata:
+      labels:
+        app: nginx
+    ### SPEC OF POD
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.14.2
+          ports:
+            - containerPort: 80
+```
 
-                -> check: kubectl get pods -n nginx
+                -> check:
+
+```
+                    kubectl get pods -n nginx
+```
+
                       and you will see 4 pods ready....
 
                   ## HOW DOES IT HELP TO SCALE UP?
                       in times of high traffic.. you can simply do:
+
+```
                           kubectl scale deployemnt/nginx-deployment -n ngnix --replicas=10
+```
+
                               you will see 10 pods ready straight away...
 
                   ###NOTE: at any point of time if you want a descriptive pod details:
@@ -350,6 +403,8 @@ There are 6 kinds of workloads:
       2. REPLICASET:
                   -> vim replicaset.yml
                   ->
+
+```YAML
                     kind: ReplicaSet
                     apiVersion: apps/v1
                     ### METADATA OF DEPLOYMENT
@@ -377,15 +432,21 @@ There are 6 kinds of workloads:
                             image: nginx:1.14.2
                             ports:
                             - containerPort: 80
+```
 
-                  -> esc :wq enter
+                  -> check:
 
-                  -> check: kubectl get pods -n nginx
+```
+                        kubectl get pods -n nginx
+```
+
                       and you will see 4 pods ready....
 
       3.DAEMONSET:
                   -> vim daemonset.yml
                   ->
+
+```YAML
                     kind: DaemonSet
                     apiVersion: apps/v1
                     ### METADATA OD DEPLOYMENT
@@ -413,10 +474,16 @@ There are 6 kinds of workloads:
                             image: nginx:1.14.2
                             ports:
                             - containerPort: 80
+```
 
                   -> esc :wq enter
 
-                  -> check: kubectl get pods -n nginx
+                  -> check:
+
+```
+                          kubectl get pods -n nginx
+```
+
                       and you will see 3 pods ready... as there are 3 worker nodes...
 
       4. JOBS:
@@ -441,6 +508,8 @@ There are 6 kinds of workloads:
                    Example:
                     -> vim jobs.yml
                     ->
+
+```yaml
                         kind: Job
                         apiVersion: batch/v1
                         metadata:
@@ -457,19 +526,33 @@ There are 6 kinds of workloads:
                               containers:
                               - name: batch-container
                                 image: busybox:latest
-                                command: ["sh", "-c", "echo hello world &&
-                                        sleep 10]
+                                command: ["sh", "-c", "echo hello world && sleep 10];
                             restartPolicy: Never
+```
 
                       -> esc :wq enter
 
-                      -> kubectl apply -f job.yml
+                      ->
 
-                      -> check: kubectl get jobs -n nginx
+```
+                          kubectl apply -f job.yml
+```
+
+                      -> check:
+
+```
+                              kubectl get jobs -n nginx
+```
+
                           you will see the pod state as running for first 10s and then change the state to complete after 10s
                              - from here we also learn that pods have differnet states eg. container creating, running, terminating, completed etc..
 
-                      -> check logs: kubectl logs pod/demo-job-qqrh(pod_name) -n nginx
+                      -> check logs:
+
+```
+                      kubectl logs pod/demo-job-qqrh(pod_name) -n nginx
+```
+
                           you will see: hello world..
 
         5.  CRONJOBS:
@@ -485,6 +568,7 @@ There are 6 kinds of workloads:
 
               Basic CronJob YAML structure:
 
+```YAML
                 apiVersion: batch/v1
                 kind: CronJob
                 metadata:
@@ -504,6 +588,7 @@ There are 6 kinds of workloads:
                             - -c
                             - date; echo "Hello from CronJobs"
                         restartPolicy: OnFailure
+```
 
 # STORAGE:
 
@@ -521,6 +606,7 @@ There are 6 kinds of workloads:
 
           Example yml of PV:
 
+```YAML
               kind: PersistentVolume
               apiVersion: v1
               metadata:
@@ -539,9 +625,14 @@ There are 6 kinds of workloads:
                                   cloud-storage, network-storage
                 hostPath:
                   path: /mnt/data
+```
 
             now after applying.. when you do
-              kubectl get pv ...
+
+```
+              kubectl get pv
+```
+
                 you will see, 1Gi is available
 
       PERSISTENT VOLUME CLAIM (PVC):
@@ -550,6 +641,7 @@ There are 6 kinds of workloads:
 
           Example PVC yml:
 
+```YAML
             kind: PersistentVolumeClaim
             apiVersion: v1
             metadata:
@@ -562,9 +654,14 @@ There are 6 kinds of workloads:
                 requests:
                   storage: 1Gi
               storageClassName: local-storage
+```
 
             now after applying, when you do:
+
+```
               kubectl get pv
+```
+
                 you will see that there is a 1Gi pv, but the status will say bound...
 
             VERY IMPORTANT — PV ↔ PVC MATCHING:
@@ -606,6 +703,7 @@ There are 6 kinds of workloads:
 
                   make sure you delete the previous deployemnt... then edit the deployment.yml ->
 
+```YAML
                   kind: Deployment
                   apiVersion: apps/v1
                   metadata:
@@ -635,6 +733,7 @@ There are 6 kinds of workloads:
                           - name: my-volume
                             persistentVolumeClaim:
                               claimName: local-pvc
+```
 
 # SERVICE:
 
@@ -664,6 +763,7 @@ There are 6 kinds of workloads:
 
         Example of yml file of Services:
 
+```YAML
                         kind: Service
                         apiVersion: v1
                         metadata:
@@ -678,25 +778,36 @@ There are 6 kinds of workloads:
                               targetPort: 80 #(This is the port on the Pod/container)
                           type: ClusterIP #(other values: NodePort, Loadbalancer etc.,
                                               Headless) *** FOR DWESCRIPTION SEE BELOW
+```
 
         Now after apply, if you want to cheack ALL (pods, deploment, service):
+
+```
               kubectl get all -n ngnix
+```
 
         Problem: this cluster is in a docker container..so we need to forward the port to access pods from outside:
+
+```
             sudo -E kubectl port-forward service/ngnix-service -n nginx 80:80 --address=0.0.0.0
+```
+
             now make sure that you expose the port 80 on ec2 instance
 
               But remember:
                     kubectl port-forward is mainly for testing/debugging
                     it is not the normal production exposure method
 
+## SERVICE TYPES:
 
-        ## SERVICE TYPES:
                 ClusterIP, NodePort, LoadBalancer, and ExternalName
                   (A headless Service is created by setting clusterIP: None; it is a Service pattern rather than a separate type value.)
 
-          ###ClusterIP — step by step:
+### ClusterIP — step by step:
+
             EXAMPLE:
+
+```YAML
                 apiVersion: v1
                 kind: Service
                 metadata:
@@ -710,6 +821,7 @@ There are 6 kinds of workloads:
                     port: 80
                     targetPort: 80
                   type: ClusterIP
+```
 
             What it does?
                 It gives the Service an internal virtual IP inside the cluster.
@@ -730,8 +842,11 @@ There are 6 kinds of workloads:
                 Suppose you deploy: frontend & backend
                   The frontend can call: http://backend-service:5000 inside the cluster.
 
-          ### NodePort — step by step:
+### NodePort — step by step:
+
             EXAMPLE:
+
+```YAML
               apiVersion: v1
               kind: Service
               metadata:
@@ -746,6 +861,7 @@ There are 6 kinds of workloads:
                   targetPort: 80
                   nodePort: 30080
                 type: NodePort
+```
 
             What it Does:
                Kubernetes opens a port on every node in the cluster, usually from the range 30000–32767, and forwards that traffic to the Service, which then forwards to Pods.
@@ -761,8 +877,11 @@ There are 6 kinds of workloads:
             Why use it?
               Because it is a quick way to access an app from outside the cluster without a separate external load balancer.
 
-          ### LoadBalancer — step by step
+### LoadBalancer — step by step
+
             EXAMPLE:
+
+```YAML
               apiVersion: v1
               kind: Service
               metadata:
@@ -776,6 +895,7 @@ There are 6 kinds of workloads:
                   port: 80
                   targetPort: 80
                 type: LoadBalancer
+```
 
             What it Does:
               On a supported cloud platform, Kubernetes asks the cloud provider to provision an external load balancer and attach it to your Service.
@@ -791,8 +911,11 @@ There are 6 kinds of workloads:
             Why Use it?
               Because it is cleaner and more production-like than manually exposing node ports.
 
-          ### Headless Service — step by step
+### Headless Service — step by step
+
             EXAMPLE:
+
+```YAML
               apiVersion: v1
               kind: Service
               metadata:
@@ -805,6 +928,7 @@ There are 6 kinds of workloads:
                 ports:
                 - port: 80
                   targetPort: 80
+```
 
             What it Does?
               A normal Service gives you one Service IP and load-balances traffic.
@@ -845,6 +969,8 @@ There are 6 kinds of workloads:
             Step 9: Create a deployment:
               vim deployment.yml
                   ----->>>>
+
+```YAML
                     kind: Deployment
                     apiVersion: apps/v1
                     metadata:
@@ -874,9 +1000,12 @@ There are 6 kinds of workloads:
                         - name: app-storage
                           persistentVolumeClaim:
                             claimName: nodejs-app-pvc
+```
 
               Spet 9: Create PV (Modern way: You only create PVC, K8S automatically creates PV) - REAL WORLD (cloud: You only create: PVC → Kubernetes auto-creates PV)
                       ---->>>>
+
+```YAML
                         apiVersion: v1
                         kind: PersistentVolume
                         metadata:
@@ -890,9 +1019,12 @@ There are 6 kinds of workloads:
                           storageClassName: manual-storage
                           hostPath:
                             path: /mnt/node-data
+```
 
               Step 10: Create PVC for app storage (Modern way: You only create PVC, K8S automatically creates PV) - REAL WORLD (cloud: You only create: PVC → Kubernetes auto-creates PV)
                       ---->>>>
+
+```YAML
                         apiVersion: v1
                         kind: PersistentVolumeClaim
                         metadata:
@@ -904,9 +1036,12 @@ There are 6 kinds of workloads:
                           resources:
                             requests:
                               storage: 1Gi
+```
 
               Step 11: create service.yml
                       ---->>>>
+
+```YAML
                         kind: Service
                         apiVersion: v1
                         metadata:
@@ -920,20 +1055,30 @@ There are 6 kinds of workloads:
                               port: 5000
                               targetPort: 5000
                           type: ClusterIP
+```
 
               Step 12: apply these:
+
+```
                 kubectl apply -f namespace.yml
                 kubectl apply -f pv.yml
                 kubectl apply -f pvc.yml
                 kubectl apply -f deployment.yml
                 kubectl apply -f service.yml
+```
 
               Step 13: Check resources
+
+```
                 kubectl get all -n one-tier
                 kubectl get pvc -n one-tier
+```
 
               Step 14: expose the port:
+
+```
                 sudo -E kubectl port-forward service/nodejs-service -n one-tier 5000:5000 --address=0.0.0.0
+```
 
               Step 15: add this port to security group in AWS
 
@@ -967,6 +1112,8 @@ There are 6 kinds of workloads:
 
           The YAML object where you write rules:
             ---->>>>
+
+```YAML
                     apiVersion: networking.k8s.io/v1
                     kind: Ingress
                     metadata:
@@ -984,6 +1131,7 @@ There are 6 kinds of workloads:
                                     name: frontend-service
                                     port:
                                       number: 80
+```
 
             Suppose you have:
               frontend Deployment + Service
@@ -994,6 +1142,8 @@ There are 6 kinds of workloads:
                 backend-service on port 5000
 
                     ------>>>>>>>
+
+```YAML
                               apiVersion: networking.k8s.io/v1
                               kind: Ingress
                               metadata:
@@ -1018,6 +1168,7 @@ There are 6 kinds of workloads:
                                               name: backend-service
                                               port:
                                                 number: 5000
+```
 
 # STATEFULSETS:
 
@@ -1038,6 +1189,7 @@ There are 6 kinds of workloads:
 
                 Service.yml:
 
+```YAML
                     kind: Service
                     apiVersion: v1
                     metadata:
@@ -1052,9 +1204,11 @@ There are 6 kinds of workloads:
                         protocol: TCP
                         port: 3306
                         targetPort: 3306
+```
 
       #### Now create the statfulset.yml
 
+```YAML
                     kind: StatefulSet
                     apiVersion: apps/v1
                     metadata:
@@ -1093,6 +1247,7 @@ There are 6 kinds of workloads:
                           resources:
                             requests:
                               storage: 1Gi
+```
 
     #### WHY VOLUMECLAIMTEMPLATE:
       REMEMBER IN DEPLOYMENT WE USED:
@@ -1127,6 +1282,8 @@ There are 6 kinds of workloads:
         ConfigMap is used to store non-sensitive configuration data separately from the container image.
 
         ### EXAMPLE:
+
+```YAML
             kind: ConfigMap
             apiVersion: v1
             metadata:
@@ -1134,13 +1291,13 @@ There are 6 kinds of workloads:
               namespace: mysql
             data:
               MYSQL_DATABASE: devops
+```
 
           Note: ConfigMap can also be mounted as a file inside container (like config file).
 
-          -> Now in StatefulSets.yml
+          -> Now in StatefulSets.yml - the value in the env is not direct... change it to valueFrom:
 
-              the value in the env is not direct... change it to valueFrom:
-
+```YAML
                 env:
                 - name: MYSQL_ROOT_PASSWORD
                   value: root
@@ -1149,6 +1306,7 @@ There are 6 kinds of workloads:
                     configMapKeyRef:
                       name: mysql-config-map
                       key: MYSQL_DATABASE
+```
 
 # SECRETS:
 
@@ -1162,6 +1320,7 @@ There are 6 kinds of workloads:
 
       ###EXAMPLE:
 
+```YAML
           kind: Secret
           apiVersion: v1
           metadata:
@@ -1170,9 +1329,11 @@ There are 6 kinds of workloads:
           data:
             MYSQL_ROOT_PASSWORD: paste the value here ##(get this value from bash.. echo
                                                            (value) | base64)
+```
 
           NOW AGAIN EDIT IN THE STATEFULSET in the env:
 
+```YAML
                  env:
                 - name: MYSQL_ROOT_PASSWORD
                   valueFrom:
@@ -1184,6 +1345,7 @@ There are 6 kinds of workloads:
                     configMapKeyRef:
                       name: mysql-config-map
                       key: MYSQL_DATABASE
+```
 
 # RESOURCES AND LIMITS
 
@@ -1194,6 +1356,7 @@ There are 6 kinds of workloads:
                           in requests -> we say our min requiments of cpu and memory
                           in limits -> we specify our maximum limit of cpu and memory
 
+```YAML
                  kind: Deployment
                   apiVersion: apps/v1
                   metadata:
@@ -1230,6 +1393,7 @@ There are 6 kinds of workloads:
                           - name: my-volume
                             persistentVolumeClaim:
                               claimName: local-pvc
+```
 
 # PROBES:
 
@@ -1245,6 +1409,8 @@ There are 6 kinds of workloads:
 
                vim deployment.yml
                   ----->>>>
+
+```YAML
                     kind: Deployment
                     apiVersion: apps/v1
                     metadata:
@@ -1278,32 +1444,52 @@ There are 6 kinds of workloads:
                         - name: app-storage
                           persistentVolumeClaim:
                             claimName: nodejs-app-pvc
+```
 
         similarly we can create a readiness probe as well:
+
+```YAML
                         readinessProbe:
                               httpGet:
                                 path: /
                                 port: 5000
+```
 
         now to test if this probe was triggered or not:
+
+```
           kubectl get pods -n one-tier
+```
+
         copy the pod name and then:
+
+```
           kubectl describe pods/(pod_name) -n one-tier
+```
 
 # TAINTS/TOLERATIONS:
 
       ###Taints: this tells the scheduler not to use a tained node..
       ###Toleration: we can add toleration to a tainted node, so that scheduler can      schedule pods there..
       To Taint:
+
+```
         kubectl taint node (node_name) prod=true:NoSchedule
+```
+
       To Remove Taint:
+
+```
         kubectl taint node (node_name) prod=true:NoSchedule- ##(just add a minus)
+```
 
       To Add Toleration:
           lets go back to deployment.yml where we were creating a pod (assume node is tained)
 
                   vim deployment.yml
                   ----->>>>
+
+```YAML
                     kind: Deployment
                     apiVersion: apps/v1
                     metadata:
@@ -1342,6 +1528,7 @@ There are 6 kinds of workloads:
                         - name: app-storage
                           persistentVolumeClaim:
                             claimName: nodejs-app-pvc
+```
 
 # AUTOSCALING:
 
@@ -1354,29 +1541,46 @@ There are 6 kinds of workloads:
 
     Step1: use the following link to download and isntall metrics server in kind cluster:
 
+```
       kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+```
 
     Step2: Edit the Metrics server deployment:
 
+```
       kubectl -n kube-system edit deployment metrics-server
+```
 
     Step3: Add security bypass to deployment under container.args:
 
+```
       - --kubelet-insecure-tls
       - --kubelet-preferred-address-types=InternalIP,Hostname,ExternalIP
+```
 
     Step4: Restart the deployment
 
+```
       kubectl -n kube-system rollout restart deployment metrics-server
+```
 
     Step5: Verify if Metrics Sever is running:
 
+```
       kubectl get pods -n kube-system
+```
 
     Now you can check which node is taking most cpu and memory
+
+```
       kubectl top nodes
+```
+
     you can also check which pod is taking most cpu and memory
+
+```
       kubectl top pods -n (name)
+```
 
 # HPA:
 
@@ -1389,13 +1593,16 @@ There are 6 kinds of workloads:
 
         Now create ns:
 
+```YAML
                 kind: Namespace
                 apiVersion: v1
                 metaData:
                   name: apache
+```
 
         Now create its deployment:
 
+```YAML
               kind: Deployment
               apiVersion: apps/v1
               metadata:
@@ -1425,9 +1632,11 @@ There are 6 kinds of workloads:
                         limits:
                           cpu: 200m
                           memory: 256Mi
+```
 
         Now create a Service:
 
+```YAML
               apiVersion: v1
                 kind: Service
                 metadata:
@@ -1441,17 +1650,19 @@ There are 6 kinds of workloads:
                     port: 80
                     targetPort: 80
                   type: ClusterIP
+```
 
         ##Remember: at any point after creating a service, if you want to access it from outside:
+
+```
           curl http://apache-service(svc_name).apache(ns).svc.cluster.local
-
-
-
+```
 
         Now if you check with the EC2 public ip on port 80, you should see apache hosted.. it will say "It Works"
 
         NOW CREATE HPA.YML: ### (Note: carefully as this is a bit different than the above manifest files....)
 
+```YAML
               kind: HorizontalPodAutoscaler
               apiVersion: autoscaling/v2
               metaData:
@@ -1471,22 +1682,38 @@ There are 6 kinds of workloads:
                     target:
                       type: Utilization
                       averageUtilization: 5
+```
 
           Now lets forward the port:
+
+```
             sudo -E kubectl port-forward service/apache-service -n apache 80:80 --address=0.0.0.0
+```
 
         NOW LETS CREATE A LOADGENERATOR TO CREATE LOAD IN THE POD:
 
           We will now create a pod in the name of loadgenerator:
+
+```
             kubectl run -i --tty load-generator --image=busybox -n apache /bin/sh
+```
+
           Now when the it opens.. run the following command lines:
+
+```
             while true; wget -q -O- http://apache-service.apache.svc.cluster.local; done
+```
+
           Now it should continiously get the site....
 
           Now open another terminal in the system and do ssh again to to the ec2 instance (as the other one is now busy generating the load and the terminal is unusable..)
 
           Now if you check..
+
+```
             kubectl get hpa -n apache
+```
+
               you will see that cpu utilization has boomed so the replicas will auto boom up to 5 ..
 
 # VPA:
@@ -1496,17 +1723,23 @@ VPA:
 -> increases CPU/memory per Pod
 
     First we will need to download and install the vpa featues from official k8s github page. Follow the instruction given on the page;
+
       https://github.com/kubernetes/autoscaler/blob/master/vertical-pod-autoscaler/docs/installation.md
+
         use this process from the above page:
+
+```
           git clone https://github.com/kubernetes/autoscaler.git
           cd autoscaler/vertical-pod-autoscaler
           git checkout origin/vpa-release-1.0
           REGISTRY=registry.k8s.io/autoscaling TAG=1.0.0 ./hack/vpa-process-yamls.sh apply
+```
 
     Now lets start from where we ended HPA (assuming all the deployment and service is already created) and delete the hpa and stop the load-generator:
 
     Create vpa.yml
 
+```YAML
             kind: VerticalPodAutoscaler
             apiVesrsion: autoscaling.k8s.io/v1 ###***
             metaData:
@@ -1519,15 +1752,26 @@ VPA:
                 apiVersion: apps/v1
               updatePolicy: #### new thing
                 updateMode: "Auto" ### other values Initial/Off
+```
 
         now:
+
+```
           kubectl get vpa -n apache
+```
 
         Now forward the port to the public ip:
+
+```
           sudo -E kubectl port-forward service/apache-service -n apache 80:80 --address=0.0.0.0
+```
 
         now again in one terminal watch this cpu and memory usage
+
+```
           watch kubectl get vpa -n apache
+```
+
         and in the other terminal run the load-generator
 
         once the load generator has started, it might take some time, but you will see that the more cpu space will be allocated to the pod as the load increases..
@@ -1594,11 +1838,13 @@ VPA:
 
           ServiceAccount YAML:
 
+```YAML
             kind: ServiceAccount
             apiVersion: v1
             metaData:
               name: pod-reader-sa
               namespace: dev
+```
 
           ****REMEMBER: Kubernetes RBAC = Authorization only, RBAC does not do authetication of any user or group..
 
@@ -1680,6 +1926,7 @@ VPA:
                   -> list pods
                   -> watch pods
 
+```YAML
                   kind: Role
                   apiVersion: rbac.authorization.k8s.io/v1   ##****
                   metaData:
@@ -1689,6 +1936,7 @@ VPA:
                   - apiGroups: [""]  ### ** explanation after the yml file..
                     verbs: ["get", "list", "watch"]
                     resources: ["pods"]
+```
 
               Explanation of apiGroups: [""]:
                   Kubernetes resources belong to API groups.
@@ -1701,14 +1949,17 @@ VPA:
                 Example using a ServiceAccount, so create a SA first:
                 serviceaccount.yml
 
+```YAML
                     kind: ServiceAccount
                     apiVersion: v1
                     metaData:
                       name: dev-user-sa
                       namespace: dev
+```
 
                 rolebinding.yml
 
+```YAML
                   kind: RoleBinding
                   apiVersion: rbac.authorization.k8s.io/v1
                   metaData:
@@ -1722,6 +1973,7 @@ VPA:
                     kind: Role
                     name: pod-reader
                     apiGroup: rbac.authorization.k8s.io
+```
 
                 explanation of SUBJECTS:
                   This means: who receives the permission.
@@ -1731,6 +1983,7 @@ VPA:
 
         3) ClusterRole -
 
+```YAML
                 apiVersion: rbac.authorization.k8s.io/v1
                 kind: ClusterRole
                 metadata:
@@ -1739,10 +1992,11 @@ VPA:
                 - apiGroups: [""]
                   resources: ["pods"]
                   verbs: ["get", "list", "watch"]
-
+```
 
         4) ClusterRoleBinding -
 
+```YAML
                 apiVersion: rbac.authorization.k8s.io/v1
                 kind: ClusterRoleBinding
                 metadata:
@@ -1755,16 +2009,20 @@ VPA:
                   apiGroup: rbac.authorization.k8s.io
                   kind: ClusterRole
                   name: pod-reader-cluster
+```
 
         5) What about Deployments?
 
+```YAML
                 rules:
                 - apiGroups: ["apps"]
                   resources: ["deployments"]
                   verbs: ["get", "list", "watch", "create"]
+```
 
         6) Multiple resources in one Role-
 
+```YAML
                 apiVersion: rbac.authorization.k8s.io/v1
                 kind: Role
                 metadata:
@@ -1777,16 +2035,22 @@ VPA:
                 - apiGroups: ["apps"]
                   resources: ["deployments"]
                   verbs: ["get", "list", "create", "update"]
+```
 
     ### How to inspect details :
 
+```
         kubectl describe role pod-reader -n dev
         kubectl describe rolebinding read-pods-binding -n dev
         kubectl describe clusterrole pod-reader-cluster
         kubectl describe clusterrolebinding pod-reader-cluster-binding
+```
 
     ### Very useful command: can-i :
+
+```
         kubectl auth can-i get pods -n dev
+```
 
 # HELM:
 
@@ -1977,6 +2241,8 @@ VPA:
                 wait for db
                 preparing environment
         👉  YAML example:
+
+```YAML
               apiVersion: v1
               kind: Pod
               metadata:
@@ -1989,6 +2255,7 @@ VPA:
                 containers:
                 - name: main-app
                   image: nginx
+```
 
 # Sidecar Container — concept:
 
@@ -2000,8 +2267,12 @@ VPA:
                 log collector
                 proxy
                 metrics exporter
+
         👉 Sidecar = helper assistant
+
         👉  YAML example:
+
+```YAML
               apiVersion: v1
               kind: Pod
               metadata:
@@ -2014,6 +2285,7 @@ VPA:
                 - name: log-sidecar
                   image: busybox
                   command: ['sh', '-c', 'while true; do echo logging; sleep 5; done']
+```
 
         👉 Both containers:
             share network
@@ -2062,26 +2334,35 @@ NOW LET'S BUILD A REALISTIC APP:
 
       🧠 STEP 0 — CREATE NS AND SECRET (OUTSIDE HELM)
 
+```
             kubectl create namespace dev
+```
 
+```
             kubectl create secret generic mongo-secret \
               -n dev \
               --from-literal=MONGO_INITDB_ROOT_USERNAME=myuser \
               --from-literal=MONGO_INITDB_ROOT_PASSWORD='StrongPassword123'
+```
 
           Verify::
+
+```
               kubectl get secret -n dev
               kubectl describe secret mongo-secret -n dev
-
+```
 
       🧠 STEP 1 — : Helm create chart
 
+```
             -> helm create my-app -n dev
+```
 
             -> edit the tree to add the additional templates and edit the templates as per below steps:
 
             📦 HELM CHART STRUCTURE:
 
+```
                 nodejs-mongo-prod-chart/
                   Chart.yaml
                   values.yaml
@@ -2093,18 +2374,22 @@ NOW LET'S BUILD A REALISTIC APP:
                     api-service.yaml
                     hpa.yaml
                     vpa.yaml
+```
 
       ⚙️ STEP 2- Chart.yaml
 
+```YAML
                   apiVersion: v2
                   name: nodejs-mongo-prod-chart
                   description: Production-style Helm chart for NodeJS API with MongoDB
                   type: application
                   version: 0.1.0
                   appVersion: "1.0.0"
+```
 
       ⚙️ STEP 3 — values.yaml (CONTROL CENTER):
 
+```YAML
                     namespace: dev
 
                     mongodb:
@@ -2169,9 +2454,11 @@ NOW LET'S BUILD A REALISTIC APP:
                       maxAllowed:
                         cpu: 1000m
                         memory: 1Gi
+```
 
       📦 STEP 4 — mongodb-headless-service.yaml:
 
+```YAML
                   apiVersion: v1
                   kind: Service
                   metadata:
@@ -2185,9 +2472,11 @@ NOW LET'S BUILD A REALISTIC APP:
                       - name: mongodb
                         port: {{ .Values.mongodb.port }}
                         targetPort: {{ .Values.mongodb.port }}
+```
 
       📦 STEP 5 — mongodb-statefulset.yaml:
 
+```YAML
                 apiVersion: apps/v1
                 kind: StatefulSet
                 metadata:
@@ -2238,9 +2527,11 @@ NOW LET'S BUILD A REALISTIC APP:
                         {{- if .Values.mongodb.persistence.storageClassName }}
                         storageClassName: {{ .Values.mongodb.persistence.storageClassName }}
                         {{- end }}
+```
 
       📦 STEP 5 — NodeJS Deployment:
 
+```YAML
                   apiVersion: apps/v1
                   kind: Deployment
                   metadata:
@@ -2328,9 +2619,11 @@ NOW LET'S BUILD A REALISTIC APP:
                           - name: app-logs
                             emptyDir: {}
                         {{- end }}
+```
 
       📦 STEP 6 — api-service.yaml:
 
+```YAML
                     apiVersion: v1
                     kind: Service
                     metadata:
@@ -2344,9 +2637,11 @@ NOW LET'S BUILD A REALISTIC APP:
                           port: {{ .Values.api.service.port }}
                           targetPort: {{ .Values.api.containerPort }}
                       type: {{ .Values.api.service.type }}
+```
 
       📦 STEP 7 — hpa.yaml:
 
+```YAML
                     {{- if .Values.hpa.enabled }}
                     apiVersion: autoscaling/v2
                     kind: HorizontalPodAutoscaler
@@ -2368,20 +2663,32 @@ NOW LET'S BUILD A REALISTIC APP:
                               type: Utilization
                               averageUtilization: {{ .Values.hpa.targetCPUUtilizationPercentage }}
                     {{- end }}
+```
 
       📦 STEP 8 — check for errors:
+
+```
               helm lint .
+```
 
       📦 STEP 9 — Render (generate) all Kubernetes YAML files from my Helm chart — but do NOT deploy them:
+
+```
               helm template myapp . -n dev
+```
 
                   helm template = preview final YAML. Helm replaces:
                       {{ .Release.Name }}  --->>> myapp
 
       📦 STEP 10 — Install the release:
+
+```
               helm install myapp . -n dev
+```
 
       📦 STEP 11 — Install the release:
+
+```
               helm list -n dev
               kubectl get all -n dev
               kubectl get pvc -n dev
@@ -2390,23 +2697,46 @@ NOW LET'S BUILD A REALISTIC APP:
               kubectl get deployment -n dev
               kubectl get hpa -n dev
               kubectl get vpa -n dev
+```
 
       ---------DONE----------------------------
 
 ## How to observe startup:
 
     Watch Pods:
+
+```
       kubectl get pods -n dev -w
+```
+
     Check init container logs:
+
+```
       kubectl logs <api-pod-name> -n dev -c wait-for-mongodb
+```
+
     Check app logs:
+
+```
       kubectl logs <api-pod-name> -n dev -c node-api
+```
+
     Check sidecar logs, only if enabled:
+
+```
       kubectl logs <api-pod-name> -n dev -c log-sidecar
+```
 
 ## How to test the API:
 
     Check the service of the node-js app (not the mongodb):
+
+```
       kubectl get svc/api-service -n dev
+```
+
     Port forward the svc:
+
+```
       kubectl port-forward svc/(svc_name) -n dev 8080:80 --address=0.0.0.0
+```
