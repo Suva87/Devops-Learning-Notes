@@ -2911,3 +2911,781 @@ Port forward the svc:
 ```
 kubectl port-forward svc/(svc_name) -n dev 8080:80 --address=0.0.0.0
 ```
+
+# MONITORING K8S
+
+Observality of K8S can be classified into:
+Metrics:
+Exporter → Prometheus → Grafana
+
+Logs:
+Promtail → Loki → Grafana
+
+Traces:
+OpenTelemetry → Jaeger/Grafana Tempo
+
+### Goal:
+
+👉 Detect problems
+👉 Debug problems
+👉 Predict problems
+
+Node / Pod / K8S Object
+↓
+Exporter / Metrics Endpoint
+↓
+Prometheus Scrapes Metrics
+↓
+Prometheus stores metrics in TSDB
+↓
+Grafana queries Prometheus
+↓
+Dashboards & Graphs
+
+🚀 VERY IMPORTANT WORD:
+SCRAPING: Prometheus mainly works using - PULL MODEL. Meaning: 👉 Prometheus goes and FETCHES metrics.
+
+🚀 NOW THE NEXT BIG REALIZATION KUBERNETES MONITORING HAS 3 LEVELS
+
+### 1️⃣ Infrastructure Monitoring:
+
+-> Observe:
+.) nodes
+.) CPU
+.) RAM
+.) disk
+-> Tools:
+.) Node Exporter
+
+### 2️⃣ Kubernetes Monitoring
+
+-> Observe:
+.) pods
+.) deployments
+.) restarts
+.) HPA
+-> Tools:
+.) kube-state-metrics
+
+### 3️⃣ Application Monitoring
+
+-> Observe:
+.) requests/sec
+.) login failures
+.) API latency
+-> Tools:
+.) app metrics endpoint
+.) Prometheus client libraries
+
+## Node exporter:
+
+This is a service that takes the info from the nodes and exports it on a particular port
+
+Exports:
+OS-level metrics
+Node-level metrics
+
+## Kube state Metrics:
+
+Node exporter justs helps in exporing node information... but for components, the information is taken by the defualt namespace (Kube-system) through the kube state metrics..
+Exports:
+Kubernetes object state
+
+## Goal:
+
+👉 Detect problems
+👉 Debug problems
+👉 Predict problems
+
+Node / Pod / K8S Object
+↓
+Exporter / Metrics Endpoint
+↓
+Prometheus Scrapes Metrics
+↓
+Prometheus stores metrics in TSDB
+↓
+Grafana queries Prometheus
+↓
+Dashboards & Graphs
+
+### 🚀 VERY IMPORTANT WORD: SCRAPING:
+
+SCRAPING: Prometheus mainly works using - PULL MODEL. Meaning: 👉 Prometheus goes and FETCHES metrics.
+
+EXAMPLE:
+
+Suppose Node Exporter exposes metrics on: http://node-exporter:9100/metrics
+-> Prometheus periodically visits: /metrics and collects data. This process is called: SCRAPING
+
+Prometheus mainly has 4 jobs:
+
+| Component                | Responsibility         |
+| ------------------------ | ---------------------- |
+| Scraper                  | Collect metrics        |
+| TSDB                     | Store time-series data |
+| PromQL                   | Query engine           |
+| Alertmanager integration | Trigger alerts         |
+
+Prometheus cannot directly understand everything. So many systems expose metrics using: EXPORTERS. Exporters convert system/application information into Prometheus-readable metrics.
+
+COMMON EXPORTERS
+
+| Exporter           | Purpose                 |
+| ------------------ | ----------------------- |
+| Node Exporter      | Linux node metrics      |
+| kube-state-metrics | Kubernetes object state |
+| cAdvisor           | container metrics       |
+| MongoDB exporter   | MongoDB metrics         |
+| Nginx exporter     | Nginx metrics           |
+| MySQL exporter     | MySQL metrics           |
+
+🚨 VERY IMPORTANT FOR YOUR EMS APP :
+
+For your EMS SaaS later, you will eventually monitor:
+
+| Metric                          | Why Important |
+| ------------------------------- | ------------- |
+| Login requests                  | auth health   |
+| API latency                     | performance   |
+| DB connections                  | Mongo health  |
+| Pod restarts                    | instability   |
+| Employee attendance API traffic | load pattern  |
+
+## Prometheus:
+
+This is a data scraper, that takes data from different componets of K8S..
+It is a TimeSeries Database that has the following abilities;
+-> Scrape Data
+-> Query Server that uses PROMQL to query the data
+-> Make Graphs
+-> Data store
+
+🧠 VERY IMPORTANT REALIZATION: Prometheus does NOT magically understand MongoDB. MongoDB Exporter exposes metrics. Then Prometheus scrapes them.
+
+-> Prometheus stores metrics -> Grafana queries Prometheus -> Grafana visualizes the returned data
+
+### PROMETHEUS OPERATOR:
+
+Managing raw Prometheus configs manually becomes difficult in Kubernetes. So Kubernetes commonly uses: Prometheus Operator
+It automates:
+-> Prometheus deployment
+-> scraping configuration
+-> monitoring CRDs
+
+### 🚀 NOW THE NEXT BIG CONCEPT: SERVICE MONITOR
+
+A ServiceMonitor tells Prometheus: 👉 WHICH Services should be scraped.
+
+Application Pod
+↓
+Service exposes metrics endpoint
+↓
+ServiceMonitor selects Service
+↓
+Prometheus Operator updates Prometheus config
+↓
+Prometheus scrapes metrics
+
+📘 EXAMPLE SERVICE MONITOR:
+
+```YAML
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nodejs-monitor
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: nodejs-api
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+```
+
+🧠 WHAT THIS MEANS:
+
+Prometheus should:
+-> find Services with label: app=nodejs-api
+-> scrape: /metrics
+-> every: 15 seconds
+
+🚨 VERY IMPORTANT REAL-WORLD REQUIREMENT: YOUR APP MUST EXPOSE /metrics
+
+REAL NODEJS EXAMPLE TO EXPOSE METRICS:
+
+For NodeJS: Usually library: prom-client
+
+```JavaScript
+
+import client from "prom-client";
+import express from "express";
+
+const app = express();
+
+const collectDefaultMetrics = client.collectDefaultMetrics;
+collectDefaultMetrics();
+
+app.get("/metrics", async (req, res) => {
+  res.set("Content-Type", client.register.contentType);
+  res.end(await client.register.metrics());
+});
+
+app.listen(5000);
+```
+
+### METRICS: WHAT ACTUALLY EXISTS INSIDE /metrics:
+
+📘 EXAMPLE /metrics OUTPUT:
+
+When Prometheus visits: /metrics, it receives plain text like:
+http_requests_total 1520
+process_cpu_seconds_total 21.5
+nodejs_heap_size_total_bytes 68288512
+
+Prometheus parses this text into time-series data.
+
+#### TYPES OF METRICS:
+
+Prometheus mainly uses::
+
+| Metric Type | Purpose                       |
+| ----------- | ----------------------------- |
+| Counter     | only increases                |
+| Gauge       | increases/decreases           |
+| Histogram   | request duration distribution |
+| Summary     | latency statistics            |
+
+EXAMPLES:
+
+🧠 COUNTER: http_requests_total
+Only increases.
+Good for: login count, API calls, errors
+
+🧠 GAUGE: memory_usage_bytes
+Can: increase/decrease
+
+🧠 HISTOGRAM: request_duration_seconds
+Used for: LATENCY
+Helps answer: 👉 “How fast is my API?”
+
+#### CUSTOM APPLICATION METRICS:
+
+🚀 NOW THE NEXT BIG REALIZATION: YOUR EMS APP SHOULD EXPOSE BUSINESS METRICS
+INFRASTRUCTURE METRICS ≠ BUSINESS METRICS
+Infrastructure metric: CPU = 70%, But business metrics are even more important.
+
+EMS BUSINESS METRICS Examples::
+employees_logged_in_total
+attendance_marked_total
+payroll_generation_failures
+leave_requests_pending
+
+These are: CUSTOM APPLICATION METRICS
+
+🚨 THIS IS HUGE FOR SAAS PRODUCTS: Because eventually your dashboards should answer: 👉 “Is the business healthy?” NOT just: 👉 “Is CPU healthy?”
+
+📘 NODEJS CUSTOM METRIC EXAMPLE:
+
+```JavaScript
+const loginCounter = new client.Counter({
+  name: "employees_logged_in_total",
+  help: "Total employee logins"
+});
+
+app.post("/login", (req, res) => {
+  loginCounter.inc();
+});
+```
+
+Now Prometheus can track: total employee logins
+
+### 🚨 ENDPOINTS:
+
+A Kubernetes Service points to Pods. The actual Pod IPs behind the Service are stored in: Endpoints
+
+EXAMPLE:
+
+Suppose:
+
+```
+Service:
+  name: ems-api-service
+```
+
+selects:
+
+```
+app: ems-api
+```
+
+Kubernetes automatically creates:
+
+```
+Endpoints:
+  10.244.1.5:5000
+  10.244.1.9:5000
+  10.244.2.3:5000
+```
+
+These are the actual Pod IPs.
+
+🧠 VERY IMPORTANT REALIZATION: Prometheus ultimately scrapes: ENDPOINTS
+
+📘 CHECK ENDPOINTS:
+
+```
+kubectl get endpoints
+```
+
+### FULL CHAIN (VERY IMPORTANT)
+
+Pod Labels
+↓
+Service selects Pods
+↓
+Endpoints created automatically
+↓
+ServiceMonitor selects Service
+↓
+Prometheus discovers Endpoints
+↓
+Prometheus scrapes metrics
+
+## 🚀 NEXT BIG TOPIC: PROMQL
+
+PromQL = Prometheus Query Language
+
+Used to: query metrics, aggregate metrics, calculate rates, create alerts
+
+### EXAMPLES:
+
+#### 1. CPU usage query:
+
+```
+rate(container_cpu_usage_seconds_total[5m])
+```
+
+Meaning: 👉 CPU usage rate over last 5 minutes
+
+#### 2. TOTAL REQUESTS
+
+```
+http_requests_total
+```
+
+#### 3. REQUEST RATE
+
+```
+rate(http_requests_total[1m])
+```
+
+Meaning: 👉 requests per second
+
+Prometheus stores RAW metrics. PromQL transforms them into:
+-> graphs
+-> alerts
+-> dashboard panels
+
+### 📘 ALERTING:
+
+Prometheus can trigger alerts using: Alertmanager
+Examples: CPU > 90%, pod crash looping, MongoDB down
+
+Alertmanager can send: Slack, Email, Teams, PagerDuty
+
+EXAMPLE ALERT FLOW:
+
+Prometheus detects threshold
+↓
+Alert fires
+↓
+Alertmanager receives it
+↓
+Notification sent
+
+ALERTS ARE JUST PROMQL CONDITIONS
+
+Example: CPU > 90%, But internally:
+
+```
+expr: rate(container_cpu_usage_seconds_total[5m]) > 0.9
+```
+
+#### 📘 SIMPLE ALERT RULE EXAMPLE:
+
+```YAML
+groups:
+  - name: cpu-alerts
+    rules:
+      - alert: HighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total[5m]) > 0.9
+        for: 2m
+        labels:
+          severity: warning
+```
+
+🧠 WHAT for: 2m MEANS:
+
+Condition must remain true for: 2 continuous minutes, before firing alert. This avoids false alarms.
+
+#### 🧠 SO THERE ARE 2 TYPES OF ALERTS:
+
+1️⃣ INFRASTRUCTURE ALERTS: (prebuilt by Helm stack)
+2️⃣ APPLICATION / BUSINESS ALERTS: These YOU must create manually.
+
+## Grafana:
+
+This is maily a visulation tool and helps to visualise the data taken from Prometheus..
+
+## STEPS:
+
+-> Make sure helm is installed..
+
+-> Create a new ns monitoring
+
+-> Now add the helm chart of prometheus community..
+
+```
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+```
+
+-> Update all the charts
+
+```
+helm repo update
+```
+
+-> Install the Prometheus-Stack
+
+```
+helm intsall prometheus-stack prometheus-community/kube-prometheus-stack --namespace monitoring --set prometheus.service.nodePort=30000 --set grafana.service.nodePort=31000 --set grafana.type=NodePort --set prometheus.service.type=NodePort
+```
+
+-> to check and get details of ports of prometheus and grafana on nodeport, so that we can use this to forward the port in the next step
+
+```
+kubectl get pods -n monitoring
+kubectl get svc -n monitoring
+```
+
+-> port-forward
+
+for prometheus
+
+```
+kubectl port-forward svc/(service_name_of_prometheus) -n monitoring (port_no.):(port_no.) --address=0.0.0.0 &
+```
+
+similarly for grafana
+
+```
+kubectl port-forward svc/(service_name_of_grafana) -n monitoring (port_no.):(port_no.) --address=0.0.0.0 &
+```
+
+-> expose the ports in aws...
+
+-> paste the public ip of ec2 instance on address bar and then open port of port no..
+
+-> when prometheus opens, there is no need to enter the scraping configurations...as we have used helm, the configurations are already there..
+Go to status -> Targets..
+
+-> when grafana opens, it will ask for usernae and password...
+username is admin
+to get the password:
+
+```
+kebectl get secret prometheus-stack-grafana -n monitoring -o jsonpath="{.data.admin-password}" | base64 decode
+```
+
+-> now here no need to connect prometheus as a data source ---> it is already added as we used helm --->
+just go to -> connections -> datasource -> you will see prometheus is already added -> just click on "build a dashboard" -> "add visualisation" -> select the data source of prometheus ->
+now in the metrics you can select which ever metrics you need..
+in the label filters -> you can select the namespace
+
+## POINTS TO NOTE FOR REAL WORLD DEPLOYMENT MONITORING: CUSTOM EMS APPLICATION MONITORING
+
+👉 If you install: kube-prometheus-stack, from the Prometheus Community Helm chart, then:
+MANY ALERTS ARE ALREADY PRE-BUILT, You do NOT have to write everything manually from zero.
+
+🧠 WHAT THE HELM CHART ALREADY GIVES YOU:
+
+| Alert                 | Example               |
+| --------------------- | --------------------- |
+| Node down             | server unreachable    |
+| Pod crash looping     | frequent restarts     |
+| High CPU              | CPU threshold crossed |
+| Memory pressure       | low available memory  |
+| Disk pressure         | disk almost full      |
+| Kubernetes API issues | API server unhealthy  |
+| HPA issues            | autoscaling problems  |
+
+These are called: DEFAULT ALERT RULES
+
+### 🚨 BUT… YOUR BUSINESS ALERTS ARE NOT INCLUDED: (as stated earlier in notes)
+
+For your EMS app later:
+The Helm chart will NOT know:
+-> employee login failures
+-> payroll API issues
+-> attendance system failures
+-> invoice processing problems
+
+#### 🚀 VERY IMPORTANT COMPONENT: PrometheusRule
+
+Custom alerts are usually created using: PrometheusRule CRD
+
+EXAMPLE:
+
+```YAML
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ems-alerts
+  namespace: monitoring
+spec:
+  groups:
+    - name: ems.rules
+      rules:
+        - alert: HighLoginFailures
+          expr: rate(login_failures_total[5m]) > 10
+          for: 2m
+          labels:
+            severity: critical
+```
+
+🧠 WHAT HAPPENS HERE:
+Prometheus continuously checks: rate(login_failures_total[5m]) > 10 ===> If true for: 2 minutes => then:👉 alert fires.
+
+🚨 VERY IMPORTANT REALIZATION: Installing monitoring stack ≠ fully monitored application.
+
+The Helm chart gives: FOUNDATION
+You later add: BUSINESS INTELLIGENCE
+
+#### FOR YOUR EMS APP:
+
+| Alert                       | Why                       |
+| --------------------------- | ------------------------- |
+| Mongo connections high      | DB overload               |
+| Attendance API latency high | slow response             |
+| Payroll job failures        | critical business failure |
+| Login failure spike         | possible auth issue       |
+| Pod restart increase        | instability               |
+
+But first remember this:
+-> ServiceMonitor only collects metrics.
+-> PrometheusRule creates alerts from metrics.
+-> Grafana dashboard visualizes metrics.
+And your EMS app must expose metrics like:
+/metrics
+
+Example metrics your NodeJS app/exporters should expose:
+-> ems_attendance_request_duration_seconds
+-> ems_payroll_job_failures_total
+-> ems_login_failures_total
+-> mongodb_connections
+-> kube_pod_container_status_restarts_total
+
+##### 1. ServiceMonitor for EMS API:
+
+```YAML
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ems-api-servicemonitor
+  namespace: monitoring
+  labels:
+    release: prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - dev
+  selector:
+    matchLabels:
+      app: ems-api
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+```
+
+Important: Your EMS API Service must have:
+
+```YAML
+metadata:
+  labels:
+    app: ems-api
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5000
+```
+
+##### 2. PrometheusRule for EMS Alerts
+
+```YAML
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ems-custom-alerts
+  namespace: monitoring
+  labels:
+    release: prometheus-stack
+spec:
+  groups:
+    - name: ems.rules
+      rules:
+
+        - alert: MongoConnectionsHigh
+          expr: mongodb_connections > 400
+          for: 5m
+          labels:
+            severity: warning
+            app: ems
+          annotations:
+            summary: "MongoDB connections are high"
+            description: "MongoDB connections have been above 400 for 5 minutes."
+
+        - alert: AttendanceApiLatencyHigh
+          expr: histogram_quantile(0.95, rate(ems_attendance_request_duration_seconds_bucket[5m])) > 1.5
+          for: 3m
+          labels:
+            severity: critical
+            app: ems
+          annotations:
+            summary: "Attendance API latency is high"
+            description: "95% of attendance API requests are taking more than 1.5 seconds."
+
+        - alert: PayrollJobFailures
+          expr: increase(ems_payroll_job_failures_total[10m]) > 0
+          for: 1m
+          labels:
+            severity: critical
+            app: ems
+          annotations:
+            summary: "Payroll job failure detected"
+            description: "At least one payroll job failed in the last 10 minutes."
+
+        - alert: LoginFailureSpike
+          expr: rate(ems_login_failures_total[5m]) > 5
+          for: 2m
+          labels:
+            severity: warning
+            app: ems
+          annotations:
+            summary: "Login failure spike"
+            description: "Login failures are increasing rapidly. Possible auth issue or brute-force attempt."
+
+        - alert: EMSPodRestartIncrease
+          expr: increase(kube_pod_container_status_restarts_total{namespace="dev", pod=~"ems-api.*"}[10m]) > 2
+          for: 2m
+          labels:
+            severity: warning
+            app: ems
+          annotations:
+            summary: "EMS API pod restart increase"
+            description: "EMS API pods restarted more than 2 times in the last 10 minutes."
+```
+
+EVEN IF YOU MUST CREATE BUSINESS ALERTS AND SERVICE MONITORS MANUALLY, BUT:
+✅ You do NOT have to create a Grafana dashboard ConfigMap:
+You can do this manually in Grafana UI:
+Grafana
+→ Connections / Data sources
+→ Prometheus already added
+→ Build dashboard
+→ Add visualization
+→ Write/select PromQL query
+→ Save dashboard
+
+But later on you should use ConfigMap for Grafana, So later with ArgoCD:
+Git dashboard YAML
+↓
+ArgoCD applies it
+↓
+Grafana gets dashboard automatically
+
+##### 3. Grafana Dashboard ConfigMap: This is a simple starter dashboard.
+
+```YAML
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ems-grafana-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  ems-dashboard.json: |
+    {
+      "title": "EMS Application Dashboard",
+      "panels": [
+        {
+          "title": "Login Failures Rate",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "rate(ems_login_failures_total[5m])"
+            }
+          ]
+        },
+        {
+          "title": "Attendance API P95 Latency",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, rate(ems_attendance_request_duration_seconds_bucket[5m]))"
+            }
+          ]
+        },
+        {
+          "title": "Payroll Job Failures",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "increase(ems_payroll_job_failures_total[1h])"
+            }
+          ]
+        },
+        {
+          "title": "MongoDB Connections",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "mongodb_connections"
+            }
+          ]
+        },
+        {
+          "title": "EMS Pod Restarts",
+          "type": "timeseries",
+          "targets": [
+            {
+              "expr": "increase(kube_pod_container_status_restarts_total{namespace=\"dev\", pod=~\"ems-api.*\"}[10m])"
+            }
+          ]
+        }
+      ],
+      "schemaVersion": 39,
+      "version": 1
+    }
+```
+
+Very Important Note: These YAML files only work if the metric names actually exist.
+
+So the chain is:
+
+EMS NodeJS app exposes /metrics
+↓
+Service exposes EMS app
+↓
+ServiceMonitor tells Prometheus to scrape it
+↓
+Prometheus stores metrics
+↓
+PrometheusRule creates alerts
+↓
+Grafana dashboard shows graphs
