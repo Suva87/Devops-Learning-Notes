@@ -157,18 +157,18 @@ Step 2: refer to previous notes for these pre-requisite installations
 Step 3: make a kind cluster: \*\*\*\*... now this config is a little different.. with some additional key values... kind-config.yaml
 
 ```YAML
-    kind: Cluster
-    apiVersion: kind.x-k8s.io/v1alpha4
-    networking:      ### this is new
-        apiServerAddress: "172.31.95.138" ### this is your EC2 private address
-        apiServerPort: 33893
-    nodes:
-        - role: control-plane
-        image: kindest/node:v1.33.1
-        - role: worker
-        image: kindest/node:v1.33.1
-        - role: worker
-        image: kindest/node:v1.33.1
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+networking:      ### this is new
+    apiServerAddress: "172.31.95.138" ### this is your EC2 private address
+    apiServerPort: 33893
+nodes:
+    - role: control-plane
+    image: kindest/node:v1.33.1
+    - role: worker
+    image: kindest/node:v1.33.1
+    - role: worker
+    image: kindest/node:v1.33.1
 ```
 
 now:
@@ -343,7 +343,7 @@ you can get the user info by: argocd get user info
 => to get initial password:
 
 ```
-kubectl get secret argocd-initial-admin-secret -n argocd \ -o jsonpath="{.data.password}" | base64 -d && echo`
+kubectl get secret argocd-initial-admin-secret -n argocd \ -o jsonpath="{.data.password}" | base64 -d && echo
 ```
 
 => later on change the password through the UI
@@ -372,7 +372,7 @@ this will create a service account as argocd-manager and get the clusterrolebind
 -> to check:
 
 ```
-argocd cluster list`
+argocd cluster list
 ```
 
 => Now we need to create a Custom Resource (CR) based on an already existing CRD (custom rescource definition) manifest file for the app...
@@ -408,7 +408,9 @@ kubectl apply -f online_shop_app.yaml`
 1.  Kubernetes receives Application resource
 2.  ArgoCD controller watches it
 3.  ArgoCD fetches Git repo
-4.  ArgoCD generates manifests 5. ArgoCD compares with cluster 6. If OutOfSync → sync (auto/manual)
+4.  ArgoCD generates manifests
+5.  ArgoCD compares with cluster
+6.  If OutOfSync → sync (auto/manual)
 
 => check the port by running:
 kubectl get svc ... lets say port 3000
@@ -658,9 +660,9 @@ metadata:
 name: nginx-dev
 
 spec:
-source:
-    repoURL: <repo>
-    path: nginx
+    source:
+        repoURL: <repo>
+        path: nginx
 
 destination:
     server: https://dev-cluster-api
@@ -1030,18 +1032,18 @@ metadata:
 name: nginx-helm-app
 namespace: argocd
 spec:
-project: default
-source:
-    repoURL: https://github.com/your-username/your-repo.git
-    targetRevision: main
-    path: helm/nginx-chart
-destination:
-    server: https://kubernetes.default.svc
-    namespace: dev
-syncPolicy:
-    automated:
-    prune: true
-    selfHeal: true
+    project: default
+    source:
+        repoURL: https://github.com/your-username/your-repo.git
+        targetRevision: main
+        path: helm/nginx-chart
+    destination:
+        server: https://kubernetes.default.svc
+        namespace: dev
+    syncPolicy:
+        automated:
+            prune: true
+            selfHeal: true
 
 ```
 
@@ -1122,24 +1124,24 @@ Now we extend the Application YAML-
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-name: nginx-dev
-namespace: argocd
+    name: nginx-dev
+    namespace: argocd
 spec:
-project: default
-source:
-    repoURL: https://github.com/your-username/your-repo.git
-    targetRevision: main
-    path: helm/nginx-chart    ####*****
-    helm:                     ####*****
-        valueFiles:
-            - values-dev.yaml
-destination:
-    server: https://kubernetes.default.svc
-    namespace: dev
-syncPolicy:
-    automated:
-    prune: true
-    selfHeal: true
+    project: default
+    source:
+        repoURL: https://github.com/your-username/your-repo.git
+        targetRevision: main
+        path: helm/nginx-chart    ####*****
+        helm:                     ####*****
+            valueFiles:
+                - values-dev.yaml
+    destination:
+        server: https://kubernetes.default.svc
+        namespace: dev
+    syncPolicy:
+        automated:
+        prune: true
+        selfHeal: true
 ```
 
 In the above the key new block is:
@@ -1194,8 +1196,8 @@ repo/
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-name: nginx-dev
-namespace: argocd
+    name: nginx-dev
+    namespace: argocd
 spec:
     project: default
     source:
@@ -1216,8 +1218,8 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-name: nginx-staging
-namespace: argocd
+    name: nginx-staging
+    namespace: argocd
 spec:
     project: default
     source:
@@ -1613,9 +1615,9 @@ Now we must tell which app should send notification.
 Add annotation in Application:
 
 ```YAML
-            metadata:
-                annotations:
-                    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: my-channel
+metadata:
+    annotations:
+        notifications.argoproj.io/subscribe.on-sync-succeeded.slack: my-channel
 ```
 
 🔥 Meaning: 👉 “Send Slack message to this channel when sync succeeds”
@@ -1846,28 +1848,28 @@ Step-by-step:
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-name: backend-app
-namespace: argocd
+  name: backend-app
+  namespace: argocd
 
 annotations:
-argocd-image-updater.argoproj.io/image-list: backend=myrepo/backend
-argocd-image-updater.argoproj.io/backend.update-strategy: latest
+  argocd-image-updater.argoproj.io/image-list: backend=myrepo/backend
+  argocd-image-updater.argoproj.io/backend.update-strategy: latest
 
 spec:
-project: default
+  project: default
 
-source:
+  source:
   repoURL: https://github.com/your-repo.git
   targetRevision: main
   path: apps/backend
 
-helm:
+  helm:
   valueFiles:
     - values.yaml
 
-destination:
-  server: https://kubernetes.default.svc
-  namespace: dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
 ```
 
 🔹 image-list
@@ -1887,8 +1889,1322 @@ argocd-image-updater.argoproj.io/backend.update-strategy: latest
 
 ---
 
-# LOGS AND MONITORING: (Prometheus & Grafana) (**_VVIMP_**):
+## 🧠 8) Steps to use Image Updater:
 
-## Prometheous:
+### 1. Install Image Updater:
 
-### What is Prometheous?
+```
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj-labs/argo-image-updater/stable/manifests/install.yaml
+```
+
+### 2. Verify that POD is running:
+
+```
+kubectl -n argocd get pods -l app.kubernetes.io/name=argocd-image-updater
+```
+
+### 3. Login tp Dockerhub: as image updater always looks at dockerhub
+
+For this go to your dockerhub->account settings->personal access tokens->generate token->copy the login and password
+
+```
+docker login ******
+```
+
+### 4. Pull the base Image from dockerhub
+
+```
+docker pull <docker_user_name>/<app_name>:latest
+```
+
+### 5. If the docker image is not yours then you can tag it in your dockerhub:
+
+```
+docker tag <docker_user_name>/<app_name>:latest sanyal_suva/<app_name>:v1.0.0
+docker push sanyal_suva/<app_name>:v1.0.0
+```
+
+#### KUSTOMIZE: kustomization.yaml
+
+we are learning this as we will be using this as an example for image updater. We require kustomize for using image updater..
+
+this is a service of K8S.
+
+similar to deployment.yaml / satefulset.yaml we must create kustomization.yaml in the same directory...
+
+```YAML
+    apiVesrion: kustomize.config.k8s.io/v1betal
+    kind: kustomization
+    #list of manifest files in this directory (base yml files)
+    resources:
+        - deployment.yaml
+        - service.yaml
+        - secret.yaml
+# (optional: you can put commonLabels or namespace here)
+# comminLabels:
+#       app: chai-app
+```
+
+### 6. GIT HUB LOGIN:
+
+Go to github->settings->developer settings->personal access token->classic->generate new token
+copy the pass key somewhere as it disaapears after closing the tab
+
+### 7. Use gut credentials in secret.yaml
+
+edit the current secret.yaml
+
+```YAML
+apiVersion: v1
+kind: secret
+metadata:
+    name: argocd-image-updater-git-creds
+    namespace: argocd
+stringData:
+    username: "<github_username>"
+    password: "personal_access_token"
+```
+
+### 8. Annotate your application as mentioned in notes above:
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: backend-app
+  namespace: argocd
+
+annotations:
+  # maps the alias "your app" to your image
+  argocd-image-updater.argoproj.io/image-list: <app_name>=<your-dockerhub-username>/<image-name>
+
+  #Use git write back
+  argocd-image-updater.argoproj.io/write-back-method: git:secret:argocd/argocd-image-updater-git-creds
+
+  # Update strategy: use semantic versioning
+  # semver format: MAJOR.MINOR.PATCH
+  # MAJOR-> BREAKING CHANGES ( eg. 1.X.X -> 2.0.0)
+  # MINOR -> NEW FEATURES (eg. 1.1.0 -> 1.2.0)
+  # PATCH -> BUG FIXES (eg. 1.1.1 -> 1.1.2)
+  argocd-image-updater.argoproj.io/backend.update-strategy: semver #
+
+spec:
+  project: default
+
+  source:
+  repoURL: https://github.com/your-repo.git
+  targetRevision: main
+  path: apps/backend
+
+  helm:
+  valueFiles:
+    - values.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+
+  syncPloicy:
+    automated:
+      prune: true
+      selfHeal: true
+```
+
+Now whenever you push a new version to your docker hub, let say <your-dockerhub-username><iamge-name>:v1.0.1 you can tail the logs and seee..
+
+```
+kubectl -n argocd logs deploy/argocd-image-updater -f
+```
+
+# MONITORING:
+
+You already learned Prometheus + Grafana in Kubernetes
+
+## What EXTRA is needed for ArgoCD Monitoring?
+
+ArgoCD does not replace monitoring, it changes how monitoring components themselves are deployed and managed.
+
+In Kubernetes notes you learned:
+
+```
+Helm install kube-prometheus-stack
+```
+
+and then manually:
+-> create ServiceMonitor
+-> create PrometheusRule
+-> create Grafana dashboards
+
+But now we are in GitOps world: So the question becomes: "How do we GitOps-manage Prometheus, Grafana, ServiceMonitor, PrometheusRule, dashboards?"
+
+## 🧠 What extra components become important?
+
+You already know:
+✅ ServiceMonitor
+✅ PrometheusRule
+✅ Dashboard ConfigMap
+✅ kube-prometheus-stack Helm chart
+Now ArgoCD adds deployment management layer
+
+## 🚀 New Things for ArgoCD Monitoring
+
+You need to learn:
+✅Monitoring stack as Helm application
+✅Monitoring stack inside App of Apps
+✅Monitoring stack inside ApplicationSet
+✅GitOps dashboards
+✅GitOps alerts
+✅ArgoCD self-monitoring (VERY IMPORTANT)
+
+## 🔥 ARGOCD SELF-MONITORING
+
+ArgoCD exposes metrics itself. Meaning ArgoCD has: /metrics, just like your NodeJS app.
+
+ArgoCD components expose metrics:
+
+| Component                      |       Example metrics |
+| ------------------------------ | --------------------: |
+| argocd-server                  |         request count |
+| argocd-repo-server             |        Git operations |
+| argocd-application-controller  |            sync count |
+| argocd-notification-controller | notification failures |
+
+Prometheus can collect:
+
+1.
+
+```
+argocd_app_sync_total
+```
+
+Meaning: How many syncs happened
+
+2.
+
+```
+argocd_app_health_status
+```
+
+Meaning: How many applications unhealthy
+
+3.
+
+```
+argocd_app_reconcile
+```
+
+Meaning: How often reconciliation occurs
+
+### Example ServiceMonitor for ArgoCD
+
+```YAML
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd-server-monitor
+  namespace: monitoring
+  labels:
+    release: prometheus-stack
+
+spec:
+  namespaceSelector:
+    matchNames:
+      - argocd
+
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-server
+
+  endpoints:
+    - port: metrics
+      interval: 15s
+```
+
+🧠 What happens here?
+
+Prometheus says:
+
+```
+Find Services:
+
+app.kubernetes.io/name=argocd-server
+
+Go to metrics endpoint
+
+Scrape every 15 seconds
+```
+
+🧠 GitOps Dashboard Flow:
+
+```
+Dashboard JSON
+      ↓
+ConfigMap
+      ↓
+Git
+      ↓
+ArgoCD
+      ↓
+Grafana auto-import
+```
+
+Example folder structure:
+
+```
+monitoring/
+
+    prometheus/
+
+        servicemonitors/
+            ems-api-monitor.yaml
+            argocd-monitor.yaml
+
+        rules/
+            ems-alerts.yaml
+            argocd-alerts.yaml
+
+        dashboards/
+            ems-dashboard.yaml
+            argocd-dashboard.yaml
+```
+
+## STEPS TO SET UP MONITORING OF APPLICATION: (but through helm)
+
+1. Deploy all the apps in the respective namespaces...by using argoCD and helm
+
+2. Check the port of ArgoCd metrics and ArgoCD server metrics
+
+```
+kubectl get svc -n argocd
+```
+
+3. Install Prometheus:
+
+```
+helm repo add prometheus-community.github.io/helm-charts
+kubectl create ns monitoring
+helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack -n monitoring
+```
+
+You will see that it will show you grafana username and also the way you can get the password..
+
+```
+kubectl -n monitoring get secrets kube-prometheus-stack-grafana -o jsonpath="{.data.admin-password}" | base64 -d ; echo
+```
+
+4. Create Service Monitor:
+   We will be picking three services now for prometheus to scrape the data from:
+   vim metrics.yaml
+
+```YAML
+# this is for argocd-metrics
+apiVesrion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+    name: argocd-metrics
+    namespace: argocd
+    labels:
+        release: kube-prometheus-stack
+spec:
+    selector:
+        matchLabels:
+            app.kubernetes.io/name: argocd-metrics
+    endpoints:
+    - port: metrics
+---
+
+# this is for argocd-server-metrics
+apiVesrion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+    name: argocd-server-metrics ###
+    namespace: argocd
+    labels:
+        release: kube-prometheus-stack
+spec:
+    selector:
+        matchLabels:
+            app.kubernetes.io/name: argocd-server-metrics ###
+    endpoints:
+    - port: metrics
+---
+
+# this is for argocd-repo-server-metrics
+apiVesrion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+    name: argocd-repo-server-metrics ###
+    namespace: argocd
+    labels:
+        release: kube-prometheus-stack
+spec:
+    selector:
+        matchLabels:
+            app.kubernetes.io/name: argocd-repo-server  ###
+    endpoints:
+    - port: metrics
+---
+
+```
+
+5. get the ports for prometheus and grafana
+
+```
+kubectl get svc -n monitoring
+```
+
+6. port forward
+
+```
+kubectl port-forward svc/<check-svc-name-from-previous-command-for-prometheus> -n monitoring 9090:<port-no-of-svc> --address=0.0.0.0 &
+
+kubectl port-forward svc/<check-svc-name-from-previous-command-for-grafana> -n monitoring 3000:<port-no-of-svc> --address=0.0.0.0 &
+```
+
+7. Make sure you add the ports in EC2..
+
+8. Now open the grafana from ec2 public-ip/3000
+
+9. login with the previously gathered username & password
+
+10. inside grafana:
+    a) connections->data source-> dashboard (this is the default dashboard)
+
+b) to make customisable dashboard: ->
+
+i)) now there are two ways:
+=> you can either add visualisation manually:
+-> dashboard -> new dashboard
+-> add visualisation-> select the data source as prometheus
+-> metrics -> select "argocs_app_info"
+-> select labels -> "project" => "seelect the project you app is in"
+-> operations -> select what you like
+-> run query
+-> now in sidebar you can see sugestions..
+
+ii)) the previous method is very slow.. so lets import dashboard
+=> dashboard -> import
+-> click on the link "Find and import dashboard"
+-> in the serach bar search for "argoCD"
+-> select the appropriate dashboad (there is one very good one -> 19993)
+-> copy id to clipboard
+-> go back to the import page of grafana -> paste the id -> click on Load -> on new page click "import"
+
+# RBAC (Role based Access Control):
+
+In AargoCd there are 2 types of users:
+Admin User | Local User
+
+Admin user generally has all the access, however local user may have CLI access or UI access or both..
+
+In ArgoCD, access can come from:
+
+- built-in admin user
+- local users
+- SSO users/groups, such as GitHub, Google, Azure AD, Keycloak, etc.
+
+We generally have a configMap.yaml to define the roles and access for a user..
+
+Eaxmple: argo-local-user-cm.yaml
+
+a)) create local user
+
+```YAML
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: argocd-cm
+    namespace: argocd
+    labels:
+        app.kubernetes.io/name: argocd-cm
+        app.kubernetes.io/part-of: argocd
+    data:
+        accounts.alice: apiKey, login # Can generate tokens and login to UI
+        accounts.jhon: login # Can only login to UI
+```
+
+After applying this you will see that in the UI, if you are looged in as admin, alice and john use has been created..
+
+b)) create their password:
+
+```
+argocd account update-password --account alice
+```
+
+=> now enter password for admin -> then enter password for user
+=> now the user 'alice' should be able to login with the password in the UI
+
+###### FROM HERE ON CONTINUE WITH THE NOTES ON GITHUB.. ARGOCD IN ONE SHOT.... CHAPTER 09_SECURITY_SCALING - before going on to that note, please learn https method from below-
+
+---
+
+# SECURITY CERTIFICATES (HTTPS) - FOR REAL WORLD HOSTING
+
+## 1) First — what are we trying to achieve?
+
+Right now, in your learning setup, you accessed ArgoCD like this:
+
+```
+kubectl port-forward service/argocd-server -n argocd 8080:443 --address=0.0.0.0
+```
+
+But in real-world EKS hosting, we do not want this. We want: https://argocd.yourdomain.com
+
+So final goal:
+
+```
+Browser
+  ↓
+https://argocd.testdomain.com
+  ↓
+DNS
+  ↓
+AWS Application Load Balancer
+  ↓
+Kubernetes Ingress
+  ↓
+argocd-server Service
+  ↓
+ArgoCD UI
+```
+
+## 2) What components are needed?
+
+For HTTPS ArgoCD on EKS, we need these components:
+
+```
+1. EKS cluster
+2. ArgoCD installed using Helm
+3. AWS Load Balancer Controller
+4. ACM certificate
+5. Ingress resource
+6. DNS record
+```
+
+Now let us understand each one slowly.
+
+1. EKS Cluster:
+
+EKS is AWS-managed Kubernetes. In your local learning, you used kind. In real AWS production, you use: Amazon EKS
+So instead of: "kind create cluster" ... You will eventually do something like:
+
+```
+eksctl create cluster ...
+```
+
+2. ArgoCD installed using Helm
+
+```
+helm repo add argo https://argoproj.github.io/argo-helm
+helm repo update
+kubectl create ns argocd
+helm install argocd argo/argo-cd -n argocd
+```
+
+For HTTPS, we will not expose ArgoCD by port-forward anymore.
+Instead, we will expose it through: Ingress → AWS ALB → HTTPS certificate
+
+3. AWS Load Balancer Controller
+
+a)) What is AWS Load Balancer Controller?
+AWS Load Balancer Controller is a Kubernetes controller that watches Kubernetes resources like Ingress and then creates AWS load balancers for them.
+So when you create an Ingress like: "kind: Ingress", The AWS Load Balancer Controller sees it and creates:
+AWS Application Load Balancer
+Target Groups
+Listeners
+Rules
+
+4. ACM Certificate:
+
+ACM means: AWS Certificate Manager. ACM gives you an SSL/TLS certificate. AWS Certificate Manager verifies that you own the domain before issuing the certificate. With DNS validation, ACM gives you a CNAME record to add to DNS.
+
+5. Ingress Resource
+
+Ingress is a Kubernetes object that says:
+When traffic comes for this domain, send it to this Kubernetes service.
+
+ArgoCD’s own ingress documentation explains that when TLS is terminated at the ingress layer, the ArgoCD API server is commonly run with TLS disabled behind the ingress, using server.insecure: "true" or the --insecure flag.
+
+6. DNS Record
+
+DNS means: Domain Name System
+DNS connects your domain name to the AWS Load Balancer.
+
+If your DNS is in Route 53, you create records there. AWS describes Route 53 as a service for domain registration, routing internet traffic to resources, and health checking.
+
+If your domain is registered in GoDaddy or Cloudflare, you have two choices:
+
+Option A:
+Keep DNS in GoDaddy/Cloudflare
+→ Add CNAME records there
+
+Option B:
+Move DNS management to Route 53
+→ Update nameservers at GoDaddy/Cloudflare
+→ Add records in Route 53
+
+## The Real Architecture
+
+```
+User Browser
+  ↓
+https://argocd.testdomain.com
+  ↓
+DNS CNAME / Alias Record
+  ↓
+AWS Application Load Balancer
+  ↓
+HTTPS Listener : 443
+  ↓
+Target Group
+  ↓
+EKS Worker Node / Pod Target
+  ↓
+argocd-server Service
+  ↓
+argocd-server Pod
+```
+
+## First understand ALB, Listener, Target Group
+
+1. What is ALB?
+   ALB means: Application Load Balancer.
+   Simple meaning: ALB is the public entry gate for your web traffic.
+   For example:
+   "https://argocd.testdomain.com" will first reach: "AWS Application Load Balancer". Then ALB forwards traffic into Kubernetes.
+
+2. What is a Listener?
+   A listener means: Which port is the load balancer listening on?
+
+For real HTTPS:
+Listener: 443
+Certificate: ACM certificate
+
+So the listener says: I am waiting for HTTPS traffic on port 443.
+
+3. What is a Target Group?
+   Target Group means: Where should the ALB send the traffic after receiving it?
+
+Example:
+
+```
+ALB receives request
+  ↓
+Target Group decides backend targets
+  ↓
+Traffic goes to ArgoCD pods/service
+```
+
+Depending on configuration, targets can be: EC2 instance/node OR Pod IP
+
+## Real-world flow in simple language
+
+When someone opens: "https://argocd.testdomain.com", This happens:
+
+```
+1. Browser asks DNS:
+   Where is argocd.testdomain.com?
+
+2. DNS replies:
+   Go to this AWS ALB.
+
+3. Browser connects to ALB on port 443.
+
+4. ALB uses ACM certificate to prove:
+   Yes, this is a valid HTTPS site.
+
+5. ALB checks Ingress routing rule:
+   Host = argocd.testdomain.com
+
+6. ALB forwards traffic to argocd-server.
+
+7. ArgoCD UI opens securely.
+```
+
+## Steps to create https configuration on EKS:
+
+### Before commands, understand the important assumption
+
+We are assuming:
+Domain: testdomain.com
+ArgoCD URL: argocd.testdomain.com
+AWS Region: ap-south-1
+EKS cluster name: ems-eks-cluster
+Namespace: argocd
+
+=> GO TO EC2
+-> Go to IAM -> Create a User -> Next-> "Attach Policies Directly" -> Select "AdminAccess" (Production should use least privilege) -> Create User
+-> Go to "Security Credentials" -> "Create Access Key" -> CLI
+
+=> in your Instance:
+Install the follwoing:
+
+### Prepare AWS CLI on your EC2/Linux machine
+
+#### AWS CLI:
+
+a)) If this is your first time updating on Amazon Linux, to install the latest version of the AWS CLI, you must uninstall the pre-installed yum version using the following command:
+
+```
+sudo yum remove awscli -y
+```
+
+b)) To install the AWS CLI, run the following commands:
+
+please note that you should have zip installed in linux... to install it...
+
+```
+sudo yum install -y unzip
+```
+
+and then:
+
+```
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+```
+
+c)) Check version:
+
+```
+aws --version
+```
+
+d)) Now configure AWS:
+
+```
+aws configure
+```
+
+It will ask:
+
+```
+AWS Access Key ID
+AWS Secret Access Key
+Default region name
+Default output format
+```
+
+e)) Then test:
+
+```
+aws sts get-caller-identity
+```
+
+Expected output:
+
+```JSON
+{
+  "UserId": "...",
+  "Account": "123456789012",
+  "Arn": "arn:aws:iam::123456789012:user/your-user"
+}
+```
+
+If this returns your account ID, AWS CLI is working.
+
+### Install kubectl, eksctl, Helm
+
+You already know kubectl and Helm from your Kubernetes notes, but for EKS we also commonly use:eksctl
+
+Why eksctl? eksctl helps create and manage EKS clusters.
+
+Without eksctl, creating an EKS cluster manually requires setting up many things separately:
+VPC
+subnets
+security groups
+EKS control plane
+node groups
+IAM roles
+OIDC provider
+kubeconfig connection
+
+#### Install eksctl on Amazon Linux / Linux EC2
+
+Run these commands:
+
+```bash
+# For normal x86_64 / amd64 EC2 instances
+ARCH=amd64
+PLATFORM=$(uname -s)_$ARCH
+
+# Download latest eksctl release
+curl -sLO "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$PLATFORM.tar.gz"
+
+# Optional but recommended: verify checksum
+curl -sL "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_checksums.txt" | grep $PLATFORM | sha256sum --check
+
+# Extract eksctl
+tar -xzf eksctl_$PLATFORM.tar.gz -C /tmp && rm eksctl_$PLATFORM.tar.gz
+
+# Move eksctl binary to PATH
+sudo install -m 0755 /tmp/eksctl /usr/local/bin && rm /tmp/eksctl
+
+### Connect kubectl to your EKS cluster
+```
+
+Verify installation:
+
+```bash
+eksctl version
+```
+
+After installing AWS CLI, kubectl, Helm, and eksctl, check all tools:
+
+```bash
+aws --version
+kubectl version --client
+helm version
+eksctl version
+```
+
+### Create EKS cluster:
+
+```bash
+eksctl create cluster \
+  --name ems-eks-cluster \
+  --region ap-south-1 \
+  --nodes 2 \
+  --node-type t3.medium \
+  --managed
+```
+
+This creates:
+EKS control plane
+worker nodes
+node group
+VPC networking
+kubectl context
+
+b)) Check:
+
+```
+kubectl get nodes
+```
+
+Expected:
+
+```
+NAME                                           STATUS   ROLES
+ip-xxx-xxx-xxx-xxx.ap-south-1.compute.internal Ready
+```
+
+If this works, your terminal can talk to EKS.
+
+### Install ArgoCD using Helm
+
+```bash
+helm repo add argo https://argoproj.github.io/argo-helm
+helm repo update
+```
+
+### Create namespace:
+
+```bash
+kubectl create namespace argocd
+```
+
+### Now install ArgoCD.
+
+But because we are planning to put ArgoCD behind AWS ALB HTTPS, we should set ArgoCD server as insecure internally.
+
+#### Why insecure internally?
+
+External traffic will be: Browser → HTTPS → ALB
+Then inside the cluster: ALB → argocd-server
+The ALB is terminating HTTPS.
+
+Install ArgoCD with Helm:
+
+```bash
+helm install argocd argo/argo-cd \
+  -n argocd \
+  --set configs.params."server\.insecure"=true
+```
+
+Check pods:
+
+```bash
+kubectl get pods -n argocd
+```
+
+Check service:
+
+```bash
+kubectl get svc -n argocd
+```
+
+### Get ArgoCD initial admin password
+
+```bash
+kubectl get secret argocd-initial-admin-secret \
+  -n argocd \
+  -o jsonpath="{.data.password}" | base64 -d && echo
+```
+
+Later, change the password from UI.
+
+### Install AWS Load Balancer Controller:
+
+Now we need the component that will convert Kubernetes Ingress into AWS ALB.
+
+1. What is AWS Load Balancer Controller?
+
+Kubernetes has an object called: kind: Ingress. But EKS itself does not automatically know how to create an AWS ALB from that Ingress. So we install:
+-----AWS Load Balancer Controller
+
+But it runs inside Kubernetes as a pod.
+
+Its job:
+
+```
+Watch Kubernetes Ingress
+   ↓
+Create AWS Application Load Balancer
+   ↓
+Create target groups
+   ↓
+Create listeners
+   ↓
+Connect ALB to Kubernetes services/pods
+```
+
+So the question is: How does a Kubernetes pod get permission to create AWS resources?
+Answer: IAM Role for Service Account
+
+2. Associate IAM OIDC provider:
+
+A Kubernetes pod is not automatically trusted by AWS IAM. .. But the AWS Load Balancer Controller pod needs permission to call AWS APIs. So AWS needs a way to trust this Kubernetes service account. That is where OIDC comes in.
+
+OIDC provider creates trust between: EKS cluster service accounts AND AWS IAM roles
+The controller needs AWS permissions. In modern EKS, we give permissions using:
+
+```
+IRSA = IAM Role for Service Account
+```
+
+Meaning:
+
+```
+Kubernetes ServiceAccount
+   ↓
+linked to AWS IAM Role
+   ↓
+controller gets permission to create ALB
+```
+
+Run:
+
+```bash
+eksctl utils associate-iam-oidc-provider \
+  --region $AWS_REGION \
+  --cluster $CLUSTER_NAME \
+  --approve
+```
+
+Meaning:
+
+```
+For this EKS cluster,
+create/associate the OIDC provider in AWS IAM,
+so Kubernetes service accounts can use IAM roles.
+```
+
+### Create IAM service account for AWS Load Balancer Controller
+
+Now we create:
+
+```
+Kubernetes ServiceAccount
++
+AWS IAM Role
++
+IAM permissions
+```
+
+=> Download IAM policy:
+
+```bash
+curl -o iam_policy.json \
+https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/docs/install/iam_policy.json
+```
+
+=> Get your AWS account ID:
+
+```bash
+AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+echo $AWS_ACCOUNT_ID
+```
+
+=> Create policy:
+
+```bash
+aws iam create-policy \
+  --policy-name AWSLoadBalancerControllerIAMPolicy \
+  --policy-document file://iam_policy.json
+```
+
+=> Save your AWS account ID:
+
+```
+export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text) ***** ## how do i get the account_id?
+```
+
+### Create IAM service account:
+
+=>
+
+```bash
+eksctl create iamserviceaccount \
+  --cluster=$CLUSTER_NAME \
+  --namespace=kube-system \
+  --name=aws-load-balancer-controller \
+  --role-name AmazonEKSLoadBalancerControllerRole \
+  --attach-policy-arn=arn:aws:iam::$AWS_ACCOUNT_ID:policy/AWSLoadBalancerControllerIAMPolicy \
+  --approve \
+  --region=$AWS_REGION
+```
+
+This creates:
+ServiceAccount: aws-load-balancer-controller
+Namespace: kube-system
+IAM Role: AmazonEKSLoadBalancerControllerRole
+Policy: AWSLoadBalancerControllerIAMPolicy
+
+=> Check:
+
+```bash
+kubectl get sa aws-load-balancer-controller -n kube-system
+```
+
+### Install controller using Helm:
+
+a)) Add repo:
+
+```bash
+helm repo add eks https://aws.github.io/eks-charts
+helm repo update
+```
+
+b)) Install:
+
+```bash
+helm install aws-load-balancer-controller eks/aws-load-balancer-controller \
+  -n kube-system \
+  --set clusterName=$CLUSTER_NAME \
+  --set serviceAccount.create=false \
+  --set serviceAccount.name=aws-load-balancer-controller
+```
+
+Why these two lines?
+
+```bash
+--set serviceAccount.create=false
+--set serviceAccount.name=aws-load-balancer-controller
+```
+
+Because we already created the service account using eksctl. So Helm should not create a new one.
+
+c)) Verify:
+
+```bash
+kubectl get deployment -n kube-system aws-load-balancer-controller
+```
+
+Expected:
+
+```
+READY   UP-TO-DATE   AVAILABLE
+2/2     2            2
+```
+
+d)) Check pods:
+
+```bash
+kubectl get pods -n kube-system | grep aws-load-balancer
+```
+
+### Create ACM certificate for ArgoCD domain
+
+1. What is ACM?
+
+ACM means: AWS Certificate Manager. It stores HTTPS certificates.
+
+For our ArgoCD domain: argocd.yourdomain.com, we need an ACM certificate.
+
+#### VVIMP: Important: The ACM certificate must be in the same AWS region as the ALB.
+
+2. Request certificate:
+
+```bash
+aws acm request-certificate \
+  --domain-name argocd.yourdomain.com \
+  --validation-method DNS \
+  --region $AWS_REGION
+```
+
+This returns: CertificateArn
+
+```json
+{
+  "CertificateArn": "arn:aws:acm:ap-south-1:123456789012:certificate/abcd..."
+}
+```
+
+3. Save it:
+
+```bash
+export ACM_CERT_ARN="arn:aws:acm:<region>:123456789012:certificate/xxxxxxx"
+```
+
+4. Validate certificate with DNS:
+
+ACM will give you a DNS CNAME record. You need to create that record in Route 53. You can get it using:
+
+```bash
+aws acm describe-certificate \
+  --certificate-arn $ACM_CERT_ARN \
+  --region $AWS_REGION \
+  --query "Certificate.DomainValidationOptions[0].ResourceRecord"
+```
+
+It will show something like:
+
+```json
+{
+  "Name": "_abc.argocd.yourdomain.com.",
+  "Type": "CNAME",
+  "Value": "_xyz.acm-validations.aws."
+}
+```
+
+Wait until: ISSUED ... Do not continue until the certificate is issued.
+
+### Add ACM validation CNAME record
+
+Now you must prove you own the domain. ACM gives you a CNAME record.
+You add that CNAME wherever your DNS is managed.
+
+Case 1 — DNS is in Cloudflare
+Go to:
+
+```
+Cloudflare Dashboard
+→ testdomain.com
+→ DNS
+→ Add record
+```
+
+Add:
+
+```
+Type: CNAME
+Name: _xxxxx.argocd
+Target: _yyyyy.acm-validations.aws
+Proxy status: DNS only
+```
+
+Case 2 — DNS is in GoDaddy
+Go to:
+
+```
+GoDaddy
+→ My Products
+→ DNS
+→ Add Record
+```
+
+Add:
+
+```
+Type: CNAME
+Host: _xxxxx.argocd
+Points to: _yyyyy.acm-validations.aws
+```
+
+Case 3 — DNS is in Route 53
+If your domain uses Route 53 DNS, you can add the CNAME in Route 53.
+
+#### What is Route 53? How to add CNAME record to Route 53?
+
+Route 53 is AWS DNS service.
+Think like this:
+Domain registrar = where you bought the domain
+DNS provider = where DNS records are controlled
+
+Sometimes both are same.
+
+Example:
+Bought domain from GoDaddy
+DNS also managed in GoDaddy
+
+But you can also do:
+Bought domain from GoDaddy
+DNS managed in Route 53
+To do that, you create a hosted zone in Route 53, then update the domain’s nameservers at GoDaddy/Cloudflare to the Route 53 nameservers.
+
+### Create ArgoCD Ingress
+
+Now we create the Kubernetes Ingress. This Ingress says:
+For argocd.testdomain.com,
+create AWS ALB,
+use ACM certificate,
+route traffic to argocd-server.
+
+Create file: vim argocd-ingress.yaml
+
+```YAML
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-ingress
+  namespace: argocd
+  annotations:
+    kubernetes.io/ingress.class: alb
+
+    alb.ingress.kubernetes.io/scheme: internet-facing
+
+    alb.ingress.kubernetes.io/target-type: ip
+
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-south-1:123456789012:certificate/abcd...
+
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+
+    alb.ingress.kubernetes.io/healthcheck-path: /healthz
+
+spec:
+  ingressClassName: alb
+  rules:
+    - host: argocd.testdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  number: 80
+```
+
+=> Apply:
+
+```bash
+kubectl apply -f argocd-ingress.yaml
+```
+
+#### Understand the annotations slowly:
+
+1. kubernetes.io/ingress.class: alb
+   Meaning: This Ingress should be handled by AWS Load Balancer Controller.
+2. scheme: internet-facing
+   Meaning: Create public ALB accessible from the internet.
+   Alternative: some companies use:internal ALB-> VPN access only -> private network only
+3. target-type: ip
+   Meaning: ALB can route directly to pod IPs.
+   Alternative: instance -> means ALB routes to worker nodes first.
+4. listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+   Meaning: ALB should listen on port 80 and 443. Port 80 will redirect to 443. Port 443 will serve HTTPS.
+5. alb.ingress.kubernetes.io/ssl-redirect: "443"
+   Meaning: If someone opens http://argocd.testdomain.com, redirect them to https://argocd.testdomain.com.
+6. alb.ingress.kubernetes.io/backend-protocol: HTTP
+   Meaning: ALB talks to ArgoCD service using HTTP inside the cluster. This is because TLS is already terminated at ALB.
+7. alb.ingress.kubernetes.io/healthcheck-path: /healthz
+   Meaning: ALB will check /healthz to see if ArgoCD backend is healthy.
+
+#### GitOps version of this setup:
+
+Right now, we applied Ingress manually. But in real GitOps, this file should live in Git. But for the first setup, there is a bootstrapping problem: ArgoCD must exist before ArgoCD can manage things.
+So initial installation is often done manually once:
+Install ArgoCD->Expose ArgoCD->Connect Git repo->Then ArgoCD manages future changes
+
+#### Helm values version for ArgoCD HTTPS
+
+Instead of creating separate Ingress YAML, you can also configure ArgoCD Helm chart values.
+=> Create: vim argocd-values.yaml
+
+```YAML
+configs:
+  params:
+    server.insecure: true
+
+server:
+  ingress:
+    enabled: true
+    ingressClassName: alb
+    hosts:
+      - argocd.testdomain.com
+    paths:
+      - /
+    pathType: Prefix
+    annotations:
+      kubernetes.io/ingress.class: alb
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/target-type: ip
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+      alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-south-1:123456789012:certificate/abcd...
+      alb.ingress.kubernetes.io/ssl-redirect: "443"
+      alb.ingress.kubernetes.io/backend-protocol: HTTP
+      alb.ingress.kubernetes.io/healthcheck-path: /healthz
+```
+
+=> Then install:
+
+```bash
+helm install argocd argo/argo-cd \
+  -n argocd \
+  -f argocd-values.yaml
+```
+
+OR
+Or if already installed:
+
+```bash
+helm upgrade argocd argo/argo-cd \
+  -n argocd \
+  -f argocd-values.yaml
+```
+
+### Check if ALB was created
+
+```bash
+kubectl get ingress -n argocd
+```
+
+You should see:
+
+```
+NAME             CLASS   HOSTS                   ADDRESS
+argocd-ingress   alb     argocd.testdomain.com   k8s-xxxx.ap-south-1.elb.amazonaws.com
+```
+
+The ADDRESS is the ALB DNS name.
+
+### Add DNS record for ArgoCD
+
+Now you need to connect: argocd.testdomain.com to ALB DNS name.
+Example ALB DNS: k8s-argocd-xxxx.ap-south-1.elb.amazonaws.com
+
+1. If using Cloudflare:
+
+Go to:
+
+```
+Cloudflare
+→ DNS
+→ Add Record
+```
+
+Add:
+
+```
+Type: CNAME
+Name: argocd
+Target: k8s-argocd-xxxx.ap-south-1.elb.amazonaws.com
+Proxy status: DNS only
+```

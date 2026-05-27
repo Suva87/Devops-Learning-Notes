@@ -2523,7 +2523,7 @@ kubectl get secret -n dev
 kubectl describe secret mongo-secret -n dev
 ```
 
-### 🧠 STEP 1 — : Helm create chart
+### 🧠 STEP 1 — : Install Helm as per notes above and then Helm create chart
 
 ```
 helm create my-app -n dev
@@ -2915,13 +2915,13 @@ kubectl port-forward svc/(svc_name) -n dev 8080:80 --address=0.0.0.0
 # MONITORING K8S
 
 Observality of K8S can be classified into:
-Metrics:
+=>Metrics:
 Exporter → Prometheus → Grafana
 
-Logs:
+=>Logs:
 Promtail → Loki → Grafana
 
-Traces:
+=>Traces:
 OpenTelemetry → Jaeger/Grafana Tempo
 
 ### Goal:
@@ -2931,21 +2931,21 @@ OpenTelemetry → Jaeger/Grafana Tempo
 👉 Predict problems
 
 Node / Pod / K8S Object
-↓
+->
 Exporter / Metrics Endpoint
-↓
+->
 Prometheus Scrapes Metrics
-↓
+->
 Prometheus stores metrics in TSDB
-↓
+->
 Grafana queries Prometheus
-↓
+->
 Dashboards & Graphs
 
 🚀 VERY IMPORTANT WORD:
 SCRAPING: Prometheus mainly works using - PULL MODEL. Meaning: 👉 Prometheus goes and FETCHES metrics.
 
-🚀 NOW THE NEXT BIG REALIZATION KUBERNETES MONITORING HAS 3 LEVELS
+## 🚀 NOW THE NEXT BIG REALIZATION KUBERNETES MONITORING HAS 3 LEVELS
 
 ### 1️⃣ Infrastructure Monitoring:
 
@@ -2954,6 +2954,7 @@ SCRAPING: Prometheus mainly works using - PULL MODEL. Meaning: 👉 Prometheus g
 .) CPU
 .) RAM
 .) disk
+
 -> Tools:
 .) Node Exporter
 
@@ -2964,6 +2965,7 @@ SCRAPING: Prometheus mainly works using - PULL MODEL. Meaning: 👉 Prometheus g
 .) deployments
 .) restarts
 .) HPA
+
 -> Tools:
 .) kube-state-metrics
 
@@ -2973,6 +2975,7 @@ SCRAPING: Prometheus mainly works using - PULL MODEL. Meaning: 👉 Prometheus g
 .) requests/sec
 .) login failures
 .) API latency
+
 -> Tools:
 .) app metrics endpoint
 .) Prometheus client libraries
@@ -3099,10 +3102,7 @@ spec:
   selector:
     matchLabels:
       app: nodejs-api
-  endpoints:
-    - port: http
-      path: /metrics
-      interval: 15s
+   
 ```
 
 🧠 WHAT THIS MEANS:
